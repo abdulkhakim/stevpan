@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STEVPAN — Track Order</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; }
+
+  .search-box {
+    position: relative;
+    max-width: 460px;
+    margin: 0 auto;
+  }
+
+  .search-box input {
+    width: 100%;
+    padding: 16px 54px 16px 20px;
+    border-radius: 14px;
+    border: 2px solid var(--border, #1a1a1a);
+    background: var(--bg-card, #111);
+    color: var(--text, #e0e0e0);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+
+  .search-box input::placeholder {
+    color: var(--muted, #555);
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  .search-box input:focus {
+    border-color: var(--accent, #D4842C);
+    box-shadow: 0 0 0 4px rgba(212,132,44,0.12);
+  }
+
+  .search-box button {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent, #D4842C);
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .search-box button:hover { background: #c07828; }
+  .search-box button:active { transform: translateY(-50%) scale(0.95); }
+
+  /* Result Card */
+  .result-card {
+    animation: resultIn 0.5s ease-out;
+  }
+
+  @keyframes resultIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Status Badge */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .status-badge i { font-size: 13px; }
+
+  /* Progress Timeline */
+  .timeline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    position: relative;
+    padding: 0 8px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 32px;
+    right: 32px;
+    height: 3px;
+    background: var(--border, #1a1a1a);
+    border-radius: 2px;
+  }
+
+  .timeline-progress {
+    position: absolute;
+    top: 20px;
+    left: 32px;
+    height: 3px;
+    background: var(--accent, #D4842C);
+    border-radius: 2px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .tl-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    z-index: 1;
+    flex: 1;
+  }
+
+  .tl-dot {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg-card, #111);
+    border: 3px solid var(--border, #1a1a1a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--muted, #555);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .tl-step.done .tl-dot {
+    background: var(--accent, #D4842C);
+    border-color: var(--accent, #D4842C);
+    color: white;
+    box-shadow: 0 0 16px rgba(212,132,44,0.35);
+  }
+
+  .tl-step.current .tl-dot {
+    border-color: var(--accent, #D4842C);
+    color: var(--accent, #D4842C);
+    animation: dotPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes dotPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(212,132,44,0.3); }
+    50% { box-shadow: 0 0 0 8px rgba(212,132,44,0); }
+  }
+
+  .tl-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted, #555);
+    text-align: center;
+    transition: color 0.3s;
+    line-height: 1.3;
+  }
+
+  .tl-step.done .tl-label,
+  .tl-step.current .tl-label {
+    color: var(--text, #ccc);
+  }
+
+  /* Preview Canvas */
+  #trackCanvas {
+    display: block;
+    width: 100%;
+    border-radius: 10px;
+    background: #0F0F0F;
+  }
+
+  /* Spec grid */
+  .spec-item {
+    padding: 14px 10px;
+    background: var(--bg, #0a0a0a);
+    border-radius: 10px;
+    text-align: center;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+  }
+
+  .empty-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(212,132,44,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+  }
+
+  /* Loading spinner */
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Copy button */
+  .copy-btn {
+    background: none;
+    border: 1px solid var(--border, #1a1a1a);
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: var(--muted, #555);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  .copy-btn:hover {
+    border-color: var(--accent, #D4842C);
+    color: var(--accent, #D4842C);
+  }
+
+  /* Responsive timeline */
+  @media (max-width: 480px) {
+    .tl-label { font-size: 10px; }
+    .tl-dot { width: 34px; height: 34px; font-size: 12px; }
+    .timeline::before, .timeline-progress { top: 17px; left: 22px; right: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="border-b" style="border-color:var(--border);background:var(--bg-card)">
+  <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+    <a href="index.html" class="bo text-xs"><i class="fas fa-arrow-left mr-1"></i> Back to Configurator</a>
+    <div class="flex items-center gap-2">
+      <div style="width:28px;height:28px;background:var(--accent);border-radius:6px" class="flex items-center justify-center"><i class="fas fa-fire" style="color:#fff;font-size:12px"></i></div>
+      <span class="text-sm font-bold tracking-wide" style="letter-spacing:.08em">STEVPAN</span>
+    </div>
+    <div style="width:80px"></div>
+  </div>
+</header>
+
+<main class="max-w-3xl mx-auto px-6 py-8">
+
+  <!-- Hero / Search Section -->
+  <div id="search-section">
+    <div class="text-center mb-8">
+      <div class="empty-icon mb-4">
+        <i class="fas fa-magnifying-glass-location" style="font-size:28px;color:var(--accent)"></i>
+      </div>
+      <h2 class="text-3xl font-bold mb-2">Track Your Order</h2>
+      <p class="text-sm" style="color:var(--muted);max-width:380px;margin:0 auto;line-height:1.5">
+        Enter your Order ID to see real-time progress of your custom pan.
+      </p>
+    </div>
+
+    <div class="search-box mb-6">
+      <input type="text" id="search-input" placeholder="e.g. SP-20250615-001" autocomplete="off" spellcheck="false">
+      <button id="btn-search"><i class="fas fa-search"></i></button>
+    </div>
+
+    <div class="text-center">
+      <p class="text-xs" style="color:var(--muted)">
+        Your Order ID was provided after checkout and via email confirmation.
+      </p>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading-state" style="display:none">
+    <div class="sc">
+      <div class="flex items-center justify-center gap-3 py-12">
+        <i class="fas fa-circle-notch spin text-lg" style="color:var(--accent)"></i>
+        <span class="text-sm" style="color:var(--muted)">Looking up your order...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Not Found State -->
+  <div id="notfound-state" style="display:none">
+    <div class="sc result-card">
+      <div class="empty-state">
+        <div class="empty-icon">
+          <i class="fas fa-box-open" style="font-size:28px;color:var(--err)"></i>
+        </div>
+        <h3 class="text-lg font-bold mb-2">Order Not Found</h3>
+        <p class="text-sm mb-4" style="color:var(--muted);max-width:320px;margin:0 auto;line-height:1.5">
+          We couldn't find an order with that ID. Please double-check and try again.
+        </p>
+        <button class="bp" id="btn-retry" style="padding:10px 24px">
+          <i class="fas fa-arrow-rotate-left mr-2"></i>Try Again
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result Section -->
+  <div id="result-section" style="display:none">
+
+    <!-- Order ID + Date -->
+    <div class="sc result-card mb-5">
+      <div class="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <div class="text-xs mb-1" style="color:var(--muted)">ORDER ID</div>
+          <div class="flex items-center gap-2">
+            <span id="res-order-id" class="text-xl font-bold font-mono" style="letter-spacing:.04em">SP-XXXXXX-XXX</span>
+            <button class="copy-btn" id="btn-copy" title="Copy ID"><i class="fas fa-copy mr-1"></i>Copy</button>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-xs mb-1" style="color:var(--muted)">ORDER DATE</div>
+          <span id="res-date" class="text-sm font-medium">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status + Timeline -->
+    <div class="sc result-card mb-5" style="animation-delay:.1s">
+      <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <span class="text-sm font-semibold"><i class="fas fa-signal mr-1" style="color:var(--accent)"></i> ORDER STATUS</span>
+        <div id="res-status-badge" class="status-badge">—</div>
+      </div>
+
+      <div class="timeline" id="timeline">
+        <div class="timeline-progress" id="tl-progress" style="width:0%"></div>
+        <div class="tl-step" data-step="0">
+          <div class="tl-dot"><i class="fas fa-receipt"></i></div>
+          <div class="tl-label">Pending</div>
+        </div>
+        <div class="tl-step" data-step="1">
+          <div class="tl-dot"><i class="fas fa-industry"></i></div>
+          <div class="tl-label">Being<br>Manufactured</div>
+        </div>
+        <div class="tl-step" data-step="2">
+          <div class="tl-dot"><i class="fas fa-truck"></i></div>
+          <div class="tl-label">Shipped</div>
+        </div>
+        <div class="tl-step" data-step="3">
+          <div class="tl-dot"><i class="fas fa-circle-check"></i></div>
+          <div class="tl-label">Delivered</div>
+        </div>
+      </div>
+
+      <div id="res-updated" class="text-xs text-center mt-4" style="color:var(--muted)"></div>
+    </div>
+
+    <!-- Pan Preview + Specs -->
+    <div class="sc result-card mb-5" style="animation-delay:.2s">
+      <div class="text-sm font-semibold mb-3"><i class="fas fa-fire mr-1" style="color:var(--accent)"></i> YOUR PAN</div>
+
+      <div style="border-radius:10px;overflow:hidden;margin-bottom:16px;border:1px solid var(--border)">
+        <canvas id="trackCanvas"></canvas>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4" id="res-specs"></div>
+
+      <div class="flex items-center justify-between pt-3" style="border-top:1px solid var(--border)">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-map-marker-alt text-xs" style="color:var(--accent)"></i>
+          <span class="text-sm" style="color:var(--muted)">Shipping to</span>
+        </div>
+        <span id="res-region" class="text-sm font-semibold">—</span>
+      </div>
+    </div>
+      <!-- Review Section -->
+      <div id="rv-section" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+        <div class="text-xs font-semibold mb-3"><i class="fas fa-star mr-1" style="color:var(--accent)"></i> CUSTOMER REVIEW</div>
+        <div id="rv-content"></div>
+      </div>
+    <!-- Action -->
+          <div class="flex gap-3 mb-8" id="action-buttons">
+      <button class="bp flex-1" id="btn-refresh" style="padding:12px">
+        <i class="fas fa-arrows-rotate mr-2"></i>Refresh Status
+      </button>
+      <a href="index.html" class="bo flex-1 text-center" style="padding:12px;border-radius:12px;font-size:14px;font-weight:600">
+        <i class="fas fa-plus mr-2"></i>New Order
+      </a>
+    </div>
+  </div>
+
+</main>
+
+<footer class="border-t" style="border-color:var(--border)">
+  <div class="max-w-7xl mx-auto px-6 py-6">
+    <div class="flex flex-wrap items-center justify-center gap-4 text-xs" style="color:var(--muted)">
+      <span>&copy; 2025 STEVPAN Malaysia</span>
+      <span>·</span>
+      <a href="terms.html" style="color:var(--muted);text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">Terms</a>
+      <span>·</span>
+      <a href="privacy.html" style="color:var(--muted);text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">Privacy</a>
+      <span>·</span>
+      <a href="refund.html" style="color:var(--muted);text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">Refund Policy</a>
+      <span>·</span>
+      <a href="faq.html" style="color:var(--muted);text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">FAQ</a>
+      <span>·</span>
+      <a href="about.html" style="color:var(--muted);text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">About</a>
+    </div>
+  </div>
+  <!-- WHATSAPP FLOATING BUTTON -->
+<a href="https://wa.me/60123456789?text=Hi%20STEVPAN%2C%20I%20need%20help%20with%20my%20order" target="_blank" style="position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(37,211,102,.4);z-index:80;transition:transform .2s,box-shadow .2s;text-decoration:none" onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 28px rgba(37,211,102,.5)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(37,211,102,.4)'">
+  <i class="fab fa-whatsapp" style="color:#fff;font-size:26px"></i>
+</a>
+</footer>
+<div id="toast" class="toast"><span id="toast-m"></span></div>
+
+<script>
+/* ── SUPABASE ── */
+var SB_URL='https://uwshuhapmqucxcxqnaqk.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3c2h1aGFwbXF1Y3hjeHFuYXFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1OTM4MTQsImV4cCI6MjA5MjE2OTgxNH0.x0ahvlVthcaOUVz84Hv3V7ILUUgojxsitH0i4rbt6Lw';
+var sb=window.supabase.createClient(SB_URL,SB_KEY);
+
+/* ── STATUS CONFIG ── */
+var STEPS = [
+  { key: 'pending',    label: 'Pending',        icon: 'fa-clock',         bg: 'rgba(212,146,44,.12)', color: '#D4922C', step: 0 },
+  { key: 'production', label: 'In Production',  icon: 'fa-gear',         bg: 'rgba(96,165,250,.12)', color: '#60A5FA', step: 1 },
+  { key: 'shipping',   label: 'Shipping',       icon: 'fa-truck',        bg: 'rgba(192,132,252,.12)',color: '#C084FC', step: 2 },
+  { key: 'completed',  label: 'Completed',      icon: 'fa-circle-check', bg: 'rgba(61,170,92,.12)',  color: '#3DAA5C', step: 3 }
+];
+
+function getStatusInfo(key) {
+  for (var i = 0; i < STEPS.length; i++) {
+    if (STEPS[i].key === key) return STEPS[i];
+  }
+  return { key: key, label: key, icon: 'fa-circle-question', bg: 'rgba(100,100,100,.1)', color: '#666', step: 0 };
+}
+
+/* ── TOAST ── */
+function toast(m,t){t=t||'info';var el=document.getElementById('toast');var ic=t==='ok'?'fa-circle-check':t==='err'?'fa-circle-xmark':'fa-circle-info';var cl=t==='ok'?'var(--ok)':t==='err'?'var(--err)':'var(--accent)';document.getElementById('toast-m').innerHTML='<i class="fas '+ic+' mr-2" style="color:'+cl+'"></i>'+m;el.classList.add('show');setTimeout(function(){el.classList.remove('show')},3000)}
+
+/* ── CANVAS DRAWING (compact) ── */
+var trkAF=null,TK={ctx:null,w:0,h:0};
+
+function setupTrackCanvas(){
+  var cv=document.getElementById('trackCanvas');if(!cv)return;
+  var dpr=window.devicePixelRatio||1;var dw=cv.clientWidth;var dh=Math.min(dw*0.65,220);
+  cv.style.height=dh+'px';cv.width=dw*dpr;cv.height=dh*dpr;
+  var ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+  TK={ctx:ctx,w:dw,h:dh};
+}
+
+function rrect(ctx,x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath()}
+
+function inPan(x,y,w,h,r,m){if(x<m||x>w-m||y<m||y>h-m)return false;if(r<=0)return true;var lx=x-m,ly=y-m,lw=w-2*m,lh=h-2*m,cr=Math.min(r,lw/2,lh/2);if(lx<0||lx>lw||ly<0||ly>lh)return false;if(lx<cr&&ly<cr)return(lx-cr)*(lx-cr)+(ly-cr)*(ly-cr)<=cr*cr;if(lx>lw-cr&&ly<cr)return(lx-(lw-cr))*(lx-(lw-cr))+(ly-cr)*(ly-cr)<=cr*cr;if(lx<cr&&ly>lh-cr)return(lx-cr)*(lx-cr)+(ly-(lh-cr))*(ly-(lh-cr))<=cr*cr;if(lx>lw-cr&&ly>lh-cr)return(lx-(lw-cr))*(lx-(lw-cr))+(ly-(lh-cr))*(ly-(lh-cr))<=cr*cr;return true}
+
+function getHolePositions(pattern,holes,panW,panL,cornerRadius){var res=[];if(pattern==='none')return res;var mg,cx=panW/2,cy=panL/2;var ok=function(x,y,d){mg=d/2+3;return inPan(x,y,panW,panL,cornerRadius,mg)};switch(pattern){case'center':if(ok(cx,cy,holes.diameter))res.push({x:cx,y:cy,d:holes.diameter});break;case'square':{if(ok(cx,cy,holes.centerDia))res.push({x:cx,y:cy,d:holes.centerDia});var hDist=holes.hDist,vDist=holes.vDist;var pts=[[cx-hDist/2,cy-vDist/2],[cx+hDist/2,cy-vDist/2],[cx-hDist/2,cy+vDist/2],[cx+hDist/2,cy+vDist/2]];for(var i=0;i<pts.length;i++){if(ok(pts[i][0],pts[i][1],holes.edgeDia))res.push({x:pts[i][0],y:pts[i][1],d:holes.edgeDia})}break}case'ring':{var n=holes.count;var radius=holes.pcd/2;for(var i=0;i<n;i++){var a=(2*Math.PI*i)/n-Math.PI/2;var x=cx+Math.cos(a)*radius,y=cy+Math.sin(a)*radius;if(ok(x,y,holes.diameter))res.push({x:x,y:y,d:holes.diameter})}break}}return res}
+
+function drawTrackPan(ts){
+  if(!TK.ctx||!window._trkCfg)return;
+  var ctx=TK.ctx,w=TK.w,h=TK.h;ctx.clearRect(0,0,w,h);
+  var c=window._trkCfg,userW=c.width,userL=c.length,userCR=c.cornerRadius;
+  var mx=40,my=20,mb=32,mr=40;var aw=w-mx-mr,ah=h-my-mb;var asp=userW/userL;var pw,ph;
+  if(aw/ah>asp){ph=ah;pw=ph*asp}else{pw=aw;ph=pw/asp}
+  var px=(w-pw)/2,py=(h-ph)/2-2;var sc=pw/userW;var cr=Math.min(userCR*sc,pw/2,ph/2);
+
+  /* Pan shadow */
+  ctx.save();ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=25;ctx.shadowOffsetX=3;ctx.shadowOffsetY=6;
+  rrect(ctx,px,py,pw,ph,cr);ctx.fillStyle='#3a3a3a';ctx.fill();ctx.restore();
+
+  /* Pan body gradient */
+  var sg=ctx.createLinearGradient(px,py,px+pw,py+ph);
+  sg.addColorStop(0,'#C0C0C0');sg.addColorStop(0.2,'#ABABAB');sg.addColorStop(0.45,'#BFBFBF');
+  sg.addColorStop(0.55,'#A8A8A8');sg.addColorStop(0.8,'#B5B5B5');sg.addColorStop(1,'#959595');
+  rrect(ctx,px,py,pw,ph,cr);ctx.fillStyle=sg;ctx.fill();
+
+  /* Brushed steel lines */
+  ctx.save();rrect(ctx,px,py,pw,ph,cr);ctx.clip();
+  for(var ly=py+1.5;ly<py+ph-1;ly+=2.5){var idx=Math.round((ly-py)/2.5);var op=idx%4===0?0.045:idx%3===0?0.02:0.01;ctx.beginPath();ctx.moveTo(px,ly);ctx.lineTo(px+pw,ly);ctx.strokeStyle='rgba(255,255,255,'+op+')';ctx.lineWidth=0.5;ctx.stroke()}
+  ctx.restore();
+
+  /* Shimmer sweep */
+  if(ts){var prog=(ts/6000)%1;var swX=px-pw*0.4+prog*pw*1.8;var sw=ctx.createLinearGradient(swX-pw*0.12,0,swX+pw*0.12,0);sw.addColorStop(0,'rgba(255,255,255,0)');sw.addColorStop(0.5,'rgba(255,255,255,.1)');sw.addColorStop(1,'rgba(255,255,255,0)');ctx.save();rrect(ctx,px,py,pw,ph,cr);ctx.clip();ctx.fillStyle=sw;ctx.fillRect(px,py,pw,ph);ctx.restore()}
+
+  /* Holes — transparent, no shadow */
+  var hp=getHolePositions(c.holes.pattern,c.holes,userW,userL,userCR);
+  if(hp.length>0){
+    ctx.save();rrect(ctx,px,py,pw,ph,cr);ctx.clip();
+    ctx.globalCompositeOperation='destination-out';
+    for(var hi=0;hi<hp.length;hi++){var hole=hp[hi];var hx=px+hole.x*sc;var hy=py+hole.y*sc;var hr=Math.max((hole.d/2)*sc,2);ctx.beginPath();ctx.arc(hx,hy,hr,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,1)';ctx.fill()}
+    ctx.restore();
+  }
+
+  /* Pan border */
+  rrect(ctx,px,py,pw,ph,cr);ctx.strokeStyle='rgba(200,200,200,.12)';ctx.lineWidth=1.5;ctx.stroke();
+
+  /* Dimensions */
+  var dimC='#D4842C',dg=14,ar=3;var hY=py+ph+dg;
+  ctx.strokeStyle=dimC;ctx.lineWidth=0.6;
+  ctx.beginPath();ctx.moveTo(px,hY);ctx.lineTo(px+pw,hY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(px,hY-4);ctx.lineTo(px,hY+4);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(px+pw,hY-4);ctx.lineTo(px+pw,hY+4);ctx.stroke();
+  ctx.fillStyle=dimC;
+  ctx.beginPath();ctx.moveTo(px,hY);ctx.lineTo(px+ar,hY-ar/2);ctx.lineTo(px+ar,hY+ar/2);ctx.fill();
+  ctx.beginPath();ctx.moveTo(px+pw,hY);ctx.lineTo(px+pw-ar,hY-ar/2);ctx.lineTo(px+pw-ar,hY+ar/2);ctx.fill();
+  ctx.font='9px Space Grotesk,sans-serif';ctx.textAlign='center';ctx.fillText(userW+'mm',(px+px+pw)/2,hY+11);
+  var vX=px+pw+dg;
+  ctx.beginPath();ctx.moveTo(vX,py);ctx.lineTo(vX,py+ph);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(vX-4,py);ctx.lineTo(vX+4,py);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(vX-4,py+ph);ctx.lineTo(vX+4,py+ph);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(vX,py);ctx.lineTo(vX-ar/2,py+ar);ctx.lineTo(vX+ar/2,py+ar);ctx.fill();
+  ctx.beginPath();ctx.moveTo(vX,py+ph);ctx.lineTo(vX-ar/2,py+ph-ar);ctx.lineTo(vX+ar/2,py+ph-ar);ctx.fill();
+  ctx.save();ctx.translate(vX-6,(py+py+ph)/2);ctx.rotate(-Math.PI/2);ctx.fillText(userL+'mm',0,0);ctx.restore();
+
+  trkAF=requestAnimationFrame(drawTrackPan);
+}
+
+/* ── SHOW / HIDE STATES ── */
+function showState(name) {
+  ['search-section','loading-state','notfound-state','result-section'].forEach(function(id){
+    document.getElementById(id).style.display = (id === name) ? 'block' : 'none';
+  });
+}
+
+/* ── RENDER RESULT ── */
+function renderResult(order) {
+  var c = order.config || {};
+  var pr = order.pricing || {};
+  var si = getStatusInfo(order.status);
+
+  /* Order ID */
+  document.getElementById('res-order-id').textContent = order.id;
+
+  /* Date */
+  var d = new Date(order.created_at);
+  var dateStr = d.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' });
+  var timeStr = d.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('res-date').textContent = dateStr + ', ' + timeStr;
+
+  /* Status badge */
+  var badge = document.getElementById('res-status-badge');
+  badge.innerHTML = '<i class="fas ' + si.icon + '"></i>' + si.label;
+  badge.style.background = si.bg;
+  badge.style.color = si.color;
+
+  /* Timeline */
+  var steps = document.querySelectorAll('.tl-step');
+  for (var i = 0; i < steps.length; i++) {
+    var s = parseInt(steps[i].dataset.step);
+    steps[i].classList.remove('done','current');
+    if (s < si.step) steps[i].classList.add('done');
+    else if (s === si.step) steps[i].classList.add('current');
+  }
+  /* Progress bar width */
+  var progEl = document.getElementById('tl-progress');
+  var maxStep = 3;
+  var pct = si.step >= maxStep ? 100 : (si.step / maxStep) * 100;
+  /* Calculate based on timeline left/right positions */
+  var tlEl = document.getElementById('timeline');
+  var firstDot = tlEl.querySelector('.tl-step .tl-dot');
+  var lastDot = tlEl.querySelectorAll('.tl-step .tl-dot')[3];
+  if (firstDot && lastDot) {
+    var tlRect = tlEl.getBoundingClientRect();
+    var firstRect = firstDot.getBoundingClientRect();
+    var lastRect = lastDot.getBoundingClientRect();
+    var totalW = lastRect.left + lastRect.width/2 - firstRect.left - firstRect.width/2;
+    var currentW = 0;
+    if (si.step >= maxStep) currentW = totalW;
+    else if (si.step > 0) currentW = (si.step / maxStep) * totalW;
+    progEl.style.width = currentW + 'px';
+  }
+
+  /* Updated text */
+  var updEl = document.getElementById('res-updated');
+  var updDate = d;
+  updEl.innerHTML = '<i class="fas fa-clock mr-1"></i>Last updated: ' + updDate.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  /* Specs */
+  var specs = [
+    { label: 'Thickness', value: c.thickness + ' mm', icon: 'fa-layer-group' },
+    { label: 'Size', value: c.width + ' × ' + c.length + ' mm', icon: 'fa-ruler-combined' },
+    { label: 'Weight', value: (pr.weight || 0).toFixed(2) + ' kg', icon: 'fa-weight-hanging' },
+    { label: 'Corner', value: c.cornerRadius > 0 ? 'R' + c.cornerRadius : 'Sharp', icon: 'fa-vector-square' }
+  ];
+  var sh = '';
+  for (var i = 0; i < specs.length; i++) {
+    var s = specs[i];
+    sh += '<div class="spec-item"><i class="fas ' + s.icon + ' text-xs mb-1 block" style="color:var(--accent)"></i><div class="text-sm font-bold">' + s.value + '</div><div class="text-xs" style="color:var(--muted)">' + s.label + '</div></div>';
+  }
+  document.getElementById('res-specs').innerHTML = sh;
+
+  /* Region */
+  document.getElementById('res-region').textContent = order.shipping_region || '—';
+
+  /* Draw pan preview */
+    /* Swap buttons based on status */
+  var actionDiv = document.getElementById('action-buttons');
+  if(si.key==='completed'){
+    actionDiv.innerHTML='<a href="review.html?id='+order.id+'" class="bp flex-1 text-center" style="padding:12px;border-radius:12px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;text-decoration:none"><i class="fas fa-star mr-2"></i>Leave a Review</a><a href="index.html" class="bo flex-1 text-center" style="padding:12px;border-radius:12px;font-size:14px;font-weight:600"><i class="fas fa-plus mr-2"></i>New Order</a>';
+  }else{
+    actionDiv.innerHTML='<button class="bp flex-1" id="btn-refresh" onclick="searchOrder(document.getElementById(\'res-order-id\').textContent)" style="padding:12px"><i class="fas fa-arrows-rotate mr-2"></i>Refresh Status</button><a href="index.html" class="bo flex-1 text-center" style="padding:12px;border-radius:12px;font-size:14px;font-weight:600"><i class="fas fa-plus mr-2"></i>New Order</a>';
+  }
+
+  showState('result-section');
+
+  /* Review section — only show if review exists */
+  var reviewDiv = document.getElementById('rv-section');
+  if(si.key==='completed'){
+    sb.from('reviews').select('*').eq('order_id',order.id).maybeSingle().then(function(res){
+      var rvContent=document.getElementById('rv-content');
+      if(res.data){
+        reviewDiv.style.display='block';
+        var rv=res.data;
+        var stars='';
+        for(var ri=1;ri<=5;ri++){
+          stars+='<i class="fas fa-star" style="font-size:14px;color:'+(ri<=rv.rating?'#EAB308':'var(--border)')+'"></i>';
+        }
+        var imgHtml='';
+        if(rv.images&&rv.images.length>0){
+          imgHtml='<div class="flex gap-2 mt-3 flex-wrap">';
+          rv.images.forEach(function(url){
+            imgHtml+='<div style="width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border);cursor:pointer" onclick="window.open(\''+url+'\',\'_blank\')">';
+            imgHtml+='<img src="'+url+'" style="width:100%;height:100%;object-fit:cover" loading="lazy">';
+            imgHtml+='</div>';
+          });
+          imgHtml+='</div>';
+        }
+        rvContent.innerHTML='<div class="flex items-center gap-2 mb-2">'+stars+'</div>'+(rv.comment?'<p class="text-sm" style="color:var(--text);line-height:1.6;font-style:italic">"'+rv.comment.replace(/</g,'&lt;')+'"</p>':'')+imgHtml;
+      }else{
+        reviewDiv.style.display='none';
+      }
+    });
+  }else{
+    reviewDiv.style.display='none';
+  }
+
+  /* Draw pan preview */
+  window._trkCfg = c;
+  if (trkAF) cancelAnimationFrame(trkAF);
+  setupTrackCanvas();
+  trkAF = requestAnimationFrame(drawTrackPan);
+}
+
+/* ── SEARCH ORDER ── */
+async function searchOrder(orderId) {
+  orderId = orderId.trim().toUpperCase();
+  if (!orderId) { toast('Please enter an Order ID', 'err'); return; }
+
+  showState('loading-state');
+
+  try {
+    var { data, error } = await sb
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (error || !data) {
+  console.error('Supabase error:', error);
+  console.log('Order ID searched:', orderId);
+  showState('notfound-state');
+  return;
+}
+
+    renderResult(data);
+  } catch (e) {
+    console.error(e);
+    showState('notfound-state');
+  }
+}
+
+/* ── EVENT LISTENERS ── */
+document.getElementById('btn-search').addEventListener('click', function(){
+  searchOrder(document.getElementById('search-input').value);
+});
+
+document.getElementById('search-input').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') searchOrder(this.value);
+});
+
+document.getElementById('btn-retry').addEventListener('click', function(){
+  showState('search-section');
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-input').focus();
+});
+
+document.getElementById('btn-refresh').addEventListener('click', function(){
+  var id = document.getElementById('res-order-id').textContent;
+  if (id) searchOrder(id);
+});
+
+document.getElementById('btn-copy').addEventListener('click', function(){
+  var id = document.getElementById('res-order-id').textContent;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(id).then(function(){
+      toast('Order ID copied!', 'ok');
+    });
+  } else {
+    /* Fallback */
+    var ta = document.createElement('textarea');
+    ta.value = id;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('Order ID copied!', 'ok');
+  }
+});
+
+/* ── AUTO-SEARCH FROM URL ── */
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var id = params.get('id');
+  if (id) {
+    document.getElementById('search-input').value = id;
+    searchOrder(id);
+  }
+})();
+
+/* ── RESIZE ── */
+var rsz;
+window.addEventListener('resize', function(){
+  clearTimeout(rsz);
+  rsz = setTimeout(function(){
+    if (trkAF) cancelAnimationFrame(trkAF);
+    if (window._trkCfg) {
+      setupTrackCanvas();
+      trkAF = requestAnimationFrame(drawTrackPan);
+    }
+  }, 150);
+});
+</script>
+</body>
+</html>

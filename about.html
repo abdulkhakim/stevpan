@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STEVPAN — About</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .about-img {
+    width: 100%; max-width: 320px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--accent, #D4842C), #a05a10);
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px;
+  }
+  .stat-box {
+    text-align: center; padding: 20px;
+    background: var(--bg, #0a0a0a);
+    border-radius: 10px;
+  }
+</style>
+</head>
+<body>
+
+<header class="border-b" style="border-color:var(--border);background:var(--bg-card)">
+  <div class="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+    <a href="index.html" class="bo text-xs"><i class="fas fa-arrow-left mr-1"></i> Back to Shop</a>
+    <div class="flex items-center gap-2">
+      <div style="width:28px;height:28px;background:var(--accent);border-radius:6px" class="flex items-center justify-center"><i class="fas fa-fire" style="color:#fff;font-size:12px"></i></div>
+      <span class="text-sm font-bold tracking-wide" style="letter-spacing:.08em">STEVPAN</span>
+    </div>
+    <div style="width:90px"></div>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-6 py-10">
+
+  <div class="flex flex-col md:flex-row gap-8 items-start mb-12">
+    <div class="about-img flex-shrink-0">
+      <i class="fas fa-fire" style="font-size:64px;color:#fff"></i>
+    </div>
+    <div>
+      <h1 class="text-3xl font-bold mb-3">About STEVPAN</h1>
+      <p class="text-sm" style="color:var(--muted);line-height:1.8">We're a Malaysian steel fabrication workshop specializing in custom pizza pans. Every pan is cut, bent, and finished to your exact specifications — not mass-produced, not imported. Made in Malaysia, for Malaysians.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-3 gap-4 mb-12">
+    <div class="stat-box">
+      <div class="text-2xl font-bold" style="color:var(--accent)">Custom</div>
+      <div class="text-xs mt-1" style="color:var(--muted)">Made to your specs</div>
+    </div>
+    <div class="stat-box">
+      <div class="text-2xl font-bold" style="color:var(--accent)">Local</div>
+      <div class="text-xs mt-1" style="color:var(--muted)">Made in Malaysia</div>
+    </div>
+    <div class="stat-box">
+      <div class="text-2xl font-bold" style="color:var(--accent)">Direct</div>
+      <div class="text-xs mt-1" style="color:var(--muted)">No middleman</div>
+    </div>
+  </div>
+
+  <div class="sc mb-8" style="padding:32px">
+    <h3 class="text-lg font-bold mb-4"><i class="fas fa-gear mr-2" style="color:var(--accent)"></i>What We Do</h3>
+    <div class="text-sm" style="color:var(--muted);line-height:1.8">
+      <p class="mb-3">STEVPAN fabricates custom rectangular steel pizza pans from stainless steel. You choose the exact dimensions, thickness, corner radius, and ventilation hole pattern — our configurator shows you a live preview and instant pricing.</p>
+      <p>We use LASER cutting for precision cuts for corner radii, and  ventilation holes per your layout. Every pan is individually made to order.</p>
+    </div>
+  </div>
+
+  <div class="sc mb-8" style="padding:32px">
+    <h3 class="text-lg font-bold mb-4"><i class="fas fa-shield-halved mr-2" style="color:var(--accent)"></i>Our Standards</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="flex items-start gap-3">
+        <i class="fas fa-ruler-combined text-xs mt-1" style="color:var(--accent)"></i>
+        <div class="text-sm" style="color:var(--muted)"><strong style="color:var(--text)">Precision cutting</strong> — LASER cut to your exact dimensions, ±1mm tolerance</div>
+      </div>
+      <div class="flex items-start gap-3">
+        <i class="fas fa-weight-hanging text-xs mt-1" style="color:var(--accent)"></i>
+        <div class="text-sm" style="color:var(--muted)"><strong style="color:var(--text)">Accurate weight</strong> — calculated at 7,850 kg/m³ stainless steel density, no guessing</div>
+      </div>
+      <div class="flex items-start gap-3">
+        <i class="fas fa-eye text-xs mt-1" style="color:var(--accent)"></i>
+        <div class="text-sm" style="color:var(--muted)"><strong style="color:var(--text)">Transparent pricing</strong> — you see material cost, margin, and labour breakdown</div>
+      </div>
+      <div class="flex items-start gap-3">
+        <i class="fas fa-truck text-xs mt-1" style="color:var(--accent)"></i>
+        <div class="text-sm" style="color:var(--muted)"><strong style="color:var(--text)">Full tracking</strong> — order status from payment to delivery, real-time</div>
+      </div>
+      <div class="flex items-start gap-3">
+        <i class="fas fa-star text-xs mt-1" style="color:var(--accent)"></i>
+        <div class="text-sm" style="color:var(--muted)"><strong style="color:var(--text)">Customer reviews</strong> — real photos and ratings from verified buyers</div>
+      </div>
+      <div class="flex items-start gap-3">
+        <i class="fas fa-lock text-xs mt-1" style="color:var(--accent)"></i>
+        <div class="text-sm" style="color:var(--muted)"><strong style="color:var(--text)">Secure payments</strong> — FPX and card via CHIP, Bank Negara approved</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sc" style="padding:32px">
+    <h3 class="text-lg font-bold mb-4"><i class="fas fa-map-marker-alt mr-2" style="color:var(--accent)"></i>Contact</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <div class="text-xs mb-1" style="color:var(--muted)">WhatsApp</div>
+        <div class="text-sm font-medium"><i class="fab fa-whatsapp mr-2" style="color:#25D366"></i>Chat with us</div>
+      </div>
+      <div>
+        <div class="text-xs mb-1" style="color:var(--muted)">Email</div>
+        <div class="text-sm font-medium">support@stevpan.com</div>
+      </div>
+      <div>
+        <div class="text-xs mb-1" style="color:var(--muted)">Service Area</div>
+        <div class="text-sm font-medium">All Malaysia</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex gap-3 mt-8">
+    <a href="index.html" class="bp" style="padding:12px 24px"><i class="fas fa-fire mr-2"></i>Configure Your Pan</a>
+    <a href="orders.html" class="bo" style="padding:12px 24px;border-radius:8px;font-size:14px;font-weight:500"><i class="fas fa-boxes-stacked mr-2"></i>View Orders</a>
+  </div>
+
+</main>
+
+<footer class="text-center py-6 text-xs" style="color:var(--muted);border-top:1px solid var(--border)">STEVPAN Malaysia &middot; Custom Steel Pizza Pans</footer>
+</body>
+</html>

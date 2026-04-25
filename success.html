@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STEVPAN — Order Confirmed</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @keyframes popIn{0%{transform:scale(0);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+  @keyframes fadeUp{0%{transform:translateY(16px);opacity:0}100%{transform:translateY(0);opacity:1}}
+  .anim-pop{animation:popIn .5s cubic-bezier(.175,.885,.32,1.275) forwards}
+  .anim-fade{opacity:0;animation:fadeUp .5s ease forwards}
+  .anim-d1{animation-delay:.15s}.anim-d2{animation-delay:.25s}.anim-d3{animation-delay:.35s}.anim-d4{animation-delay:.45s}.anim-d5{animation-delay:.55s}
+  .page-loading{text-align:center;padding:80px 20px}
+</style>
+</head>
+<body>
+
+<header class="border-b" style="border-color:var(--border);background:var(--bg-card)">
+  <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+    <a href="index.html" class="bo text-xs"><i class="fas fa-fire mr-1" style="color:var(--accent)"></i> STEVPAN</a>
+    <div class="text-xs" style="color:var(--muted)">Order Confirmed</div>
+  </div>
+</header>
+
+<div id="page-loading" class="page-loading">
+  <div class="spn mx-auto mb-4"></div>
+  <div class="text-sm" style="color:var(--muted)">Loading order details...</div>
+</div>
+
+<main id="page-content" class="max-w-3xl mx-auto px-6 py-12" style="display:none">
+  <div class="text-center mb-8 anim-pop">
+    <div style="width:88px;height:88px;background:rgba(61,170,92,.1);border-radius:50%" class="mx-auto flex items-center justify-center">
+      <div style="width:64px;height:64px;background:rgba(61,170,92,.15);border-radius:50%" class="flex items-center justify-center">
+        <i class="fas fa-check text-3xl" style="color:var(--ok)"></i>
+      </div>
+    </div>
+  </div>
+  <div class="text-center mb-8">
+    <h1 class="text-3xl font-bold mb-2 anim-fade">Payment Successful</h1>
+    <p class="text-sm anim-fade anim-d1" style="color:var(--muted)">Your custom pizza pan order has been placed and is now being processed.</p>
+  </div>
+  <div class="sc text-center mb-6 anim-fade anim-d2" style="padding:20px;background:linear-gradient(135deg,rgba(212,132,44,.06),rgba(212,132,44,.02))">
+    <div class="text-xs mb-1" style="color:var(--muted)">Order ID</div>
+    <div class="text-xl font-mono font-bold" style="color:var(--accent)" id="s-oid">—</div>
+    <div class="text-xs mt-2" style="color:var(--muted)" id="s-date"></div>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 anim-fade anim-d3">
+    <div class="sc">
+      <div class="text-xs font-semibold mb-3" style="color:var(--muted)"><i class="fas fa-user mr-1" style="color:var(--accent)"></i> CUSTOMER</div>
+      <div class="space-y-2 text-sm" id="s-cust"></div>
+    </div>
+    <div class="sc">
+      <div class="text-xs font-semibold mb-3" style="color:var(--muted)"><i class="fas fa-ruler-combined mr-1" style="color:var(--accent)"></i> PAN SPECIFICATIONS</div>
+      <div class="grid grid-cols-2 gap-2 mb-2" id="s-specs"></div>
+      <div id="s-holes" class="text-xs space-y-1 mt-2"></div>
+    </div>
+  </div>
+  <div class="sc mb-4 anim-fade anim-d4">
+    <div class="text-xs font-semibold mb-3" style="color:var(--muted)"><i class="fas fa-receipt mr-1" style="color:var(--accent)"></i> PAYMENT</div>
+    <div class="space-y-2 text-sm" id="s-price"></div>
+  </div>
+  <div class="sc mb-8 anim-fade anim-d4" style="border-color:var(--accent-dm);background:linear-gradient(135deg,rgba(212,132,44,.04),transparent)">
+    <div class="flex items-start gap-3">
+      <div style="width:36px;height:36px;background:rgba(212,132,44,.1);border-radius:8px;flex-shrink:0" class="flex items-center justify-center mt-0.5"><i class="fas fa-truck text-sm" style="color:var(--accent)"></i></div>
+      <div>
+        <div class="text-sm font-semibold mb-1">What happens next?</div>
+        <div class="text-xs space-y-1" style="color:var(--muted)">
+          <div><span class="font-medium" style="color:var(--text)">1. Production</span> — Your pan will be fabricated to your exact specifications.</div>
+          <div><span class="font-medium" style="color:var(--text)">2. Quality Check</span> — Each pan is inspected for dimensions and finish.</div>
+          <div><span class="font-medium" style="color:var(--text)">3. Shipping</span> — Packed securely and dispatched to your address.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="s-notes-wrap" class="sc mb-8 anim-fade anim-d5" style="display:none">
+    <div class="text-xs font-semibold mb-2" style="color:var(--muted)"><i class="fas fa-note-sticky mr-1" style="color:var(--accent)"></i> SPECIAL INSTRUCTIONS</div>
+    <div class="text-sm" style="color:var(--text)" id="s-notes"></div>
+  </div>
+  <div class="flex flex-col sm:flex-row gap-3 anim-fade anim-d5">
+    <button class="bo flex-1 text-center" style="padding:14px" id="btn-copy"><i class="fas fa-copy mr-2"></i>Copy Order ID</button>
+    <a href="track.html?id=localStorage.getItem('sf_last_oid')" class="bp flex-1 text-center" style="padding:14px"><i class="fas fa-signal mr-2"></i>Track Your Order</a>
+  </div>
+</main>
+
+<script>
+var SB_URL='https://uwshuhapmqucxcxqnaqk.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3c2h1aGFwbXF1Y3hjeHFuYXFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1OTM4MTQsImV4cCI6MjA5MjE2OTgxNH0.x0ahvlVthcaOUVz84Hv3V7ILUUgojxsitH0i4rbt6Lw';
+var sb=window.supabase.createClient(SB_URL,SB_KEY);
+
+function holeDesc(h,cnt){if(h.pattern==='none')return'No ventilation holes';if(h.pattern==='center')return'Center \u00D8'+h.diameter+'mm \u2014 1 hole';if(h.pattern==='square')return'Square \u2014 center \u00D8'+h.centerDia+'mm, 4\u00D7\u00D8'+h.edgeDia+'mm (H:'+h.hDist+'mm V:'+h.vDist+'mm) \u2014 '+cnt+' holes';if(h.pattern==='ring')return cnt+'\u00D7\u00D8'+h.diameter+'mm on PCD '+h.pcd+'mm';return''}
+function gO(){try{return JSON.parse(localStorage.getItem('sf_o')||'[]')}catch(e){return[]}}
+function toast(m,t){t=t||'info';var el=document.getElementById('toast');var ic=t==='ok'?'fa-circle-check':t==='err'?'fa-circle-xmark':'fa-circle-info';var cl=t==='ok'?'var(--ok)':t==='err'?'var(--err)':'var(--accent)';document.getElementById('toast-m').innerHTML='<i class="fas '+ic+' mr-2" style="color:'+cl+'"></i>'+m;el.classList.add('show');setTimeout(function(){el.classList.remove('show')},3500)}
+
+async function loadOrder(){var oid=localStorage.getItem('sf_last_oid');if(!oid){window.location.href='index.html';return}localStorage.removeItem('sf_last_oid');var order=null;var {data,error}=await sb.from('orders').select('*').eq('id',oid).single();if(data&&!error){order={id:data.id,date:data.created_at,customer:{name:data.customer_name,phone:data.customer_phone,email:data.customer_email,address:data.customer_address,notes:data.customer_notes},config:data.config,price:parseFloat(data.price),pricing:data.pricing,paymentMethod:data.payment_method,status:data.status}}if(!order){order=gO().find(function(x){return x.id===oid})}if(!order){window.location.href='index.html';return}displayOrder(order)}
+
+function displayOrder(o){document.getElementById('page-loading').style.display='none';document.getElementById('page-content').style.display='block';var c=o.config,pr=o.pricing||{};var d=new Date(o.date);document.getElementById('s-oid').textContent=o.id;document.getElementById('s-date').textContent=d.toLocaleDateString('en-MY',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+d.toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit'});document.getElementById('s-cust').innerHTML='<div class="flex items-start gap-2"><i class="fas fa-user text-xs mt-1" style="color:var(--accent);width:14px;text-align:center"></i><span>'+o.customer.name+'</span></div><div class="flex items-start gap-2"><i class="fas fa-phone text-xs mt-1" style="color:var(--accent);width:14px;text-align:center"></i><span>'+o.customer.phone+'</span></div><div class="flex items-start gap-2"><i class="fas fa-envelope text-xs mt-1" style="color:var(--accent);width:14px;text-align:center"></i><span>'+o.customer.email+'</span></div><div class="flex items-start gap-2"><i class="fas fa-location-dot text-xs mt-1" style="color:var(--accent);width:14px;text-align:center"></i><span>'+o.customer.address+'</span></div>';var si=[{l:'Width',v:c.width+'mm'},{l:'Length',v:c.length+'mm'},{l:'Thickness',v:c.thickness+'mm'},{l:'Corners',v:c.cornerRadius>0?'R'+c.cornerRadius:'Sharp'}];var sh='';for(var i=0;i<si.length;i++)sh+='<div class="text-center" style="padding:8px;background:var(--bg);border-radius:6px"><div class="text-sm font-bold">'+si[i].v+'</div><div class="text-xs" style="color:var(--muted)">'+si[i].l+'</div></div>';document.getElementById('s-specs').innerHTML=sh;var h=c.holes,cnt=c._holeCount||0;if(h.pattern!=='none')document.getElementById('s-holes').innerHTML='<div class="text-xs font-medium mb-1" style="color:var(--text)">'+cnt+' ventilation hole(s) \u2014 free</div><div class="px-2 py-1" style="background:var(--bg);border-radius:4px">'+holeDesc(h,cnt)+'</div>';else document.getElementById('s-holes').innerHTML='<div class="text-xs" style="color:var(--muted)">No ventilation holes</div>';var sm={pending:'bg-p',production:'bg-r',shipping:'bg-s',completed:'bg-c'};var pmL=o.paymentMethod==='fpx'?'FPX Online Banking':'Credit Card';document.getElementById('s-price').innerHTML='<div class="flex justify-between"><span style="color:var(--muted)">Pan Size</span><span>'+c.width+'mm \u00D7 '+c.length+'mm \u00D7 '+c.thickness+'mm</span></div><div class="flex justify-between"><span style="color:var(--muted)">Weight</span><span>'+(pr.weight?pr.weight.toFixed(2)+' kg':'\u2014')+'</span></div><div class="flex justify-between pt-2 mt-1" style="border-top:1px solid var(--border)"><span class="font-medium">Total Paid</span><span class="font-bold" style="color:var(--accent)">RM '+o.price.toFixed(2)+'</span></div><div class="flex justify-between"><span style="color:var(--muted)">Payment Method</span><span>'+pmL+'</span></div><div class="flex justify-between"><span style="color:var(--muted)">Status</span><span class="bg '+(sm[o.status]||'bg-p')+'">'+o.status+'</span></div>';if(o.customer.notes){document.getElementById('s-notes-wrap').style.display='block';document.getElementById('s-notes').textContent=o.customer.notes}document.getElementById('btn-copy').addEventListener('click',function(){navigator.clipboard.writeText(o.id).then(function(){toast('Order ID copied','ok')}).catch(function(){var ta=document.createElement('textarea');ta.value=o.id;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('Order ID copied','ok')})})}
+
+loadOrder();
+</script>
+</body>
+</html>

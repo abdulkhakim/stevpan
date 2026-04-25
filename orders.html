@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STEVPAN — All Orders</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  .ord-row {
+    background: var(--bg-card, #161616);
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color .25s;
+  }
+  .ord-row:hover { border-color: rgba(212,132,44,.3); }
+  .ord-row.open { border-color: var(--accent, #D4842C); }
+
+  .ord-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    transition: background .15s;
+  }
+  .ord-header:hover { background: rgba(255,255,255,.02); }
+
+  .ord-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--accent, #D4842C);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 14px; flex-shrink: 0;
+  }
+
+  .ord-chevron {
+    color: var(--muted, #555);
+    font-size: 12px;
+    transition: transform .3s;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+  .ord-row.open .ord-chevron { transform: rotate(180deg); }
+
+  .ord-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .4s cubic-bezier(.22,1,.36,1);
+  }
+  .ord-row.open .ord-body {
+    max-height: 800px;
+  }
+
+  .ord-canvas {
+    display: block;
+    width: 100%;
+    background: #0F0F0F;
+  }
+  .ord-spec {
+    padding: 10px;
+    background: var(--bg, #0a0a0a);
+    border-radius: 8px;
+    text-align: center;
+  }
+  .ord-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .ord-divider {
+    height: 1px;
+    background: var(--border, #2a2a2a);
+    margin: 0 18px;
+  }
+  .empty-icon {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: rgba(212,132,44,.08);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+  }
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .fu { animation: fu .4s ease-out forwards; opacity: 0; }
+  @keyframes fu { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Image modal */
+  .img-modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,.85);
+    backdrop-filter: blur(4px); z-index: 200;
+    display: none; align-items: center; justify-content: center;
+    padding: 20px; cursor: zoom-out;
+  }
+  .img-modal.open { display: flex; }
+  .img-modal img {
+    max-width: 90vw; max-height: 85vh;
+    border-radius: 12px; object-fit: contain;
+    box-shadow: 0 8px 40px rgba(0,0,0,.5);
+    animation: imgPop .3s ease-out;
+  }
+  @keyframes imgPop {
+    from { transform: scale(.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<header class="border-b" style="border-color:var(--border);background:var(--bg-card)">
+  <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="bo text-xs"><i class="fas fa-arrow-left mr-1"></i> Back</a>
+      <div style="width:36px;height:36px;background:var(--accent);border-radius:8px" class="flex items-center justify-center"><i class="fas fa-fire" style="color:#fff;font-size:16px"></i></div>
+      <div><h1 class="text-lg font-bold tracking-wide" style="letter-spacing:.08em">STEVPAN</h1><p class="text-xs" style="color:var(--muted)">All Orders</p></div>
+    </div>
+    <div id="ord-count" class="text-xs font-medium" style="color:var(--muted)">—</div>
+  </div>
+</header>
+
+<main class="max-w-3xl mx-auto px-6 py-8">
+
+  <div class="text-center mb-8 fu">
+    <h2 class="text-3xl font-bold mb-2">Customer Orders</h2>
+    <p class="text-sm" style="color:var(--muted)">Click any order to see details.</p>
+  </div>
+
+  <div id="ord-loading" class="sc">
+    <div class="flex items-center justify-center gap-3 py-16">
+      <i class="fas fa-circle-notch spin text-lg" style="color:var(--accent)"></i>
+      <span class="text-sm" style="color:var(--muted)">Loading orders...</span>
+    </div>
+  </div>
+
+  <div id="ord-empty" style="display:none" class="sc">
+    <div class="text-center py-16">
+      <div class="empty-icon"><i class="fas fa-inbox" style="font-size:28px;color:var(--muted)"></i></div>
+      <h3 class="text-lg font-bold mb-2">No Orders Yet</h3>
+      <p class="text-sm mb-4" style="color:var(--muted)">Be the first to order a custom steel pan.</p>
+      <a href="index.html" class="bp" style="padding:10px 24px;display:inline-block"><i class="fas fa-plus mr-2"></i>Configure Your Pan</a>
+    </div>
+  </div>
+
+  <div id="ord-list" class="flex flex-col gap-3" style="display:none"></div>
+
+</main>
+
+<footer class="border-t" style="border-color:var(--border)">
+  <div class="max-w-7xl mx-auto px-6 py-6">
+    <div class="flex flex-wrap items-center justify-center gap-4 text-xs" style="color:var(--muted)">
+      <span>&copy; 2025 STEVPAN Malaysia</span>
+      <span>·</span>
+      <a href="terms.html" style="color:var(--muted);text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">Terms</a>
+      <span>·</span>
+      <a href="privacy.html" style="color:var(--muted);text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">Privacy</a>
+      <span>·</span>
+      <a href="refund.html" style="color:var(--muted);text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">Refund Policy</a>
+      <span>·</span>
+      <a href="faq.html" style="color:var(--muted);text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">FAQ</a>
+      <span>·</span>
+      <a href="about.html" style="color:var(--muted);text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">About</a>
+    </div>
+  </div>
+  <!-- WHATSAPP FLOATING BUTTON -->
+<a href="https://wa.me/60123456789?text=Hi%20STEVPAN%2C%20I%20need%20help%20with%20my%20order" target="_blank" style="position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(37,211,102,.4);z-index:80;transition:transform .2s,box-shadow .2s;text-decoration:none" onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 28px rgba(37,211,102,.5)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(37,211,102,.4)'">
+  <i class="fab fa-whatsapp" style="color:#fff;font-size:26px"></i>
+</a>
+</footer>
+<!-- Image Modal -->
+<div class="img-modal" id="img-modal" onclick="this.classList.remove('open')">
+  <img id="img-modal-src" src="" alt="Review photo">
+</div>
+
+<div id="toast" class="toast"><span id="toast-m"></span></div>
+
+<script>
+var SB_URL='https://uwshuhapmqucxcxqnaqk.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3c2h1aGFwbXF1Y3hjeHFuYXFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1OTM4MTQsImV4cCI6MjA5MjE2OTgxNH0.x0ahvlVthcaOUVz84Hv3V7ILUUgojxsitH0i4rbt6Lw';
+var sb=window.supabase.createClient(SB_URL,SB_KEY);
+
+function openReviewImg(url){
+  document.getElementById('img-modal-src').src=url;
+  document.getElementById('img-modal').classList.add('open');
+}
+
+var STATUS_META={
+  pending:   {label:'Pending',     icon:'fa-clock',        bg:'rgba(212,146,44,.12)',color:'#D4922C'},
+  production:{label:'Production',  icon:'fa-gear',         bg:'rgba(96,165,250,.12)',color:'#60A5FA'},
+  shipping:  {label:'Shipping',    icon:'fa-truck',        bg:'rgba(192,132,252,.12)',color:'#C084FC'},
+  completed: {label:'Delivered',   icon:'fa-circle-check', bg:'rgba(61,170,92,.12)',color:'#3DAA5C'}
+};
+
+function maskCustomer(name,address){
+  var first=name?name.split(' ')[0]:'Customer';
+  var loc='Malaysia';
+  if(address){var parts=address.split(',');var last=parts[parts.length-1].trim().replace(/^\d{5}\s*/,'');loc=last.length>=3?last:(parts.length>1?parts[parts.length-2].trim():'Malaysia')}
+  return{name:first,location:loc};
+}
+
+function formatDate(d){
+  var dt=new Date(d);
+  return dt.toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'numeric'});
+}
+
+function timeAgo(dateStr){
+  var diff=Math.floor((Date.now()-new Date(dateStr).getTime())/1000);
+  if(diff<60)return'just now';if(diff<3600)return Math.floor(diff/60)+'m ago';
+  if(diff<86400)return Math.floor(diff/3600)+'h ago';return Math.floor(diff/86400)+'d ago';
+}
+
+function getShipRate(weightKg,address){
+  var isEast=false;if(address){var a=address.toLowerCase();isEast=a.indexOf('sabah')>-1||a.indexOf('sarawak')>-1||a.indexOf('labuan')>-1}
+  if(isEast){if(weightKg<=5)return 100;if(weightKg<=10)return 150;if(weightKg<=20)return 200;if(weightKg<=31)return 1000;return null}
+  else{if(weightKg<=10)return 0;if(weightKg<=20)return 50;if(weightKg<=31)return 100;return null}
+}
+
+function shipLabel(rate){
+  if(rate===0)return'Free';if(rate===null)return'Quote';return'RM '+rate;
+}
+
+/* ── CANVAS ── */
+function rrect(ctx,x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath()}
+
+function inPan(x,y,w,h,r,m){if(x<m||x>w-m||y<m||y>h-m)return false;if(r<=0)return true;var lx=x-m,ly=y-m,lw=w-2*m,lh=h-2*m,cr=Math.min(r,lw/2,lh/2);if(lx<0||lx>lw||ly<0||ly>lh)return false;if(lx<cr&&ly<cr)return(lx-cr)*(lx-cr)+(ly-cr)*(ly-cr)<=cr*cr;if(lx>lw-cr&&ly<cr)return(lx-(lw-cr))*(lx-(lw-cr))+(ly-cr)*(ly-cr)<=cr*cr;if(lx<cr&&ly>lh-cr)return(lx-cr)*(lx-cr)+(ly-(lh-cr))*(ly-(lh-cr))<=cr*cr;if(lx>lw-cr&&ly>lh-cr)return(lx-(lw-cr))*(lx-(lw-cr))+(ly-(lh-cr))*(ly-(lh-cr))<=cr*cr;return true}
+
+function getHolePositions(pattern,holes,panW,panL,cornerRadius){var res=[];if(pattern==='none')return res;var mg,cx=panW/2,cy=panL/2;var ok=function(x,y,d){mg=d/2+3;return inPan(x,y,panW,panL,cornerRadius,mg)};switch(pattern){case'center':if(ok(cx,cy,holes.diameter))res.push({x:cx,y:cy,d:holes.diameter});break;case'square':{if(ok(cx,cy,holes.centerDia))res.push({x:cx,y:cy,d:holes.centerDia});var pts=[[cx-holes.hDist/2,cy-holes.vDist/2],[cx+holes.hDist/2,cy-holes.vDist/2],[cx-holes.hDist/2,cy+holes.vDist/2],[cx+holes.hDist/2,cy+holes.vDist/2]];for(var i=0;i<pts.length;i++){if(ok(pts[i][0],pts[i][1],holes.edgeDia))res.push({x:pts[i][0],y:pts[i][1],d:holes.edgeDia})}break}case'ring':{var n=holes.count,radius=holes.pcd/2;for(var i=0;i<n;i++){var a=(2*Math.PI*i)/n-Math.PI/2;var x=cx+Math.cos(a)*radius,y=cy+Math.sin(a)*radius;if(ok(x,y,holes.diameter))res.push({x:x,y:y,d:holes.diameter})}break}}return res}
+
+function drawOrderPan(canvasId,config){
+  var cv=document.getElementById(canvasId);if(!cv||!config)return;
+  var dpr=window.devicePixelRatio||1;var dw=cv.clientWidth;var dh=Math.min(dw*0.65,200);
+  cv.style.height=dh+'px';cv.width=dw*dpr;cv.height=dh*dpr;
+  var ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,dw,dh);
+  var userW=config.width,userL=config.length,userCR=config.cornerRadius;
+  var pad=20,aw=dw-pad*2,ah=dh-pad*2,asp=userW/userL,pw,ph;
+  if(aw/ah>asp){ph=ah;pw=ph*asp}else{pw=aw;ph=pw/asp}
+  var px=(dw-pw)/2,py=(dh-ph)/2,sc=pw/userW,cr=Math.min(userCR*sc,pw/2,ph/2);
+  ctx.save();ctx.shadowColor='rgba(0,0,0,.4)';ctx.shadowBlur=18;ctx.shadowOffsetX=2;ctx.shadowOffsetY=4;
+  rrect(ctx,px,py,pw,ph,cr);ctx.fillStyle='#3a3a3a';ctx.fill();ctx.restore();
+  var sg=ctx.createLinearGradient(px,py,px+pw,py+ph);
+  sg.addColorStop(0,'#C0C0C0');sg.addColorStop(0.2,'#ABABAB');sg.addColorStop(0.45,'#BFBFBF');
+  sg.addColorStop(0.55,'#A8A8A8');sg.addColorStop(0.8,'#B5B5B5');sg.addColorStop(1,'#959595');
+  rrect(ctx,px,py,pw,ph,cr);ctx.fillStyle=sg;ctx.fill();
+  ctx.save();rrect(ctx,px,py,pw,ph,cr);ctx.clip();
+  for(var ly=py+1.5;ly<py+ph-1;ly+=2.5){var idx=Math.round((ly-py)/2.5);var op=idx%4===0?0.04:idx%3===0?0.018:0.008;ctx.beginPath();ctx.moveTo(px,ly);ctx.lineTo(px+pw,ly);ctx.strokeStyle='rgba(255,255,255,'+op+')';ctx.lineWidth=0.5;ctx.stroke()}
+  ctx.restore();
+  var hp=getHolePositions(config.holes.pattern,config.holes,userW,userL,userCR);
+  if(hp.length>0){
+    ctx.save();rrect(ctx,px,py,pw,ph,cr);ctx.clip();
+    ctx.globalCompositeOperation='destination-out';
+    for(var hi=0;hi<hp.length;hi++){var hole=hp[hi];var hx=px+hole.x*sc;var hy=py+hole.y*sc;var hr=Math.max((hole.d/2)*sc,2);ctx.beginPath();ctx.arc(hx,hy,hr,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,1)';ctx.fill()}
+    ctx.restore();
+  }
+  rrect(ctx,px,py,pw,ph,cr);ctx.strokeStyle='rgba(200,200,200,.1)';ctx.lineWidth=1;ctx.stroke();
+}
+
+var canvasConfigs={};
+var _origDraw=drawOrderPan;
+drawOrderPan=function(id,config){canvasConfigs[id]=config;_origDraw(id,config)};
+
+/* ── TOGGLE ── */
+function toggleOrder(idx){
+  var row=document.getElementById('or-'+idx);
+  var wasOpen=row.classList.contains('open');
+  document.querySelectorAll('.ord-row.open').forEach(function(el){el.classList.remove('open')});
+  if(!wasOpen){
+    row.classList.add('open');
+    var cvId='ocv-'+idx;
+    if(!canvasConfigs[cvId]){
+      var cfg=window['_pendingCfg_'+idx];
+      if(cfg){requestAnimationFrame(function(){drawOrderPan(cvId,cfg)})}
+    }
+  }
+}
+
+/* ── BUILD PAGE ── */
+async function loadOrders(){
+  document.getElementById('ord-loading').style.display='block';
+  document.getElementById('ord-empty').style.display='none';
+  document.getElementById('ord-list').style.display='none';
+
+  try{
+    var{data,error:oErr}=await sb.from('orders').select('*').order('created_at',{ascending:false});
+    document.getElementById('ord-loading').style.display='none';
+
+    var reviewMap={};
+    try{
+      var{data:rvData}=await sb.from('reviews').select('*');
+      if(rvData){rvData.forEach(function(r){reviewMap[r.order_id]=r})}
+    }catch(e){}
+
+    if(oErr||!data||data.length===0){
+      document.getElementById('ord-empty').style.display='block';
+      return;
+    }
+
+    document.getElementById('ord-count').textContent=data.length+' order'+(data.length!==1?'s':'');
+    var html='';
+
+    for(var i=0;i<data.length;i++){
+      var o=data[i];
+      var c=o.config||{};
+      var pr=o.pricing||{};
+      var st=STATUS_META[o.status]||STATUS_META.pending;
+      var masked=maskCustomer(o.customer_name,o.customer_address);
+      var weight=pr.weight||0;
+      var price=parseFloat(o.price)||0;
+      var shipRate=getShipRate(weight,o.customer_address);
+      var shipCost=shipRate||0;
+      var totalWithShip=price+shipCost;
+      var isFreeShip=shipRate===0;
+      var holes=getHolePositions(c.holes.pattern,c.holes,c.width,c.length,c.cornerRadius);
+      var holeText=c.holes&&c.holes.pattern!=='none'?holes.length+' hole'+(holes.length!==1?'s':''):'No holes';
+      var specLine=(c.thickness||'?')+'mm · '+(c.width||'?')+'×'+(c.length||'?')+' · '+weight.toFixed(2)+'kg';
+      window['_pendingCfg_'+i]=c;
+
+      html+='<div class="ord-row fu" id="or-'+i+'" style="animation-delay:'+(i*0.04)+'s">';
+      html+='<div class="ord-header" onclick="toggleOrder('+i+')">';
+      html+='<div class="ord-avatar">'+masked.name.charAt(0).toUpperCase()+'</div>';
+      html+='<div class="flex-1 min-w-0">';
+      html+='<div class="flex items-center gap-2 flex-wrap">';
+      html+='<span class="text-sm font-semibold">'+masked.name+'</span>';
+      html+='<span class="text-xs" style="color:var(--muted)">from '+masked.location+'</span>';
+      html+='<span class="ord-status" style="background:'+st.bg+';color:'+st.color+'"><i class="fas '+st.icon+'" style="font-size:9px"></i>'+st.label+'</span>';
+      html+='</div>';
+      html+='<div class="text-xs mt-1" style="color:var(--steel)">'+specLine+' · '+holeText+'</div>';
+      html+='</div>';
+      html+='<div class="text-right flex-shrink-0 mr-1">';
+      html+='<div class="text-sm font-bold" style="color:var(--accent)">RM '+totalWithShip.toFixed(2)+'</div>';
+      html+='<div class="text-xs" style="color:var(--muted)">'+timeAgo(o.created_at)+'</div>';
+      html+='</div>';
+      html+='<i class="fas fa-chevron-down ord-chevron"></i>';
+      html+='</div>';
+
+      html+='<div class="ord-body">';
+      html+='<div class="ord-divider"></div>';
+      html+='<div class="px-5 pt-3 pb-1"><div class="text-xs" style="color:var(--muted)"><i class="far fa-calendar mr-1"></i>Ordered on '+formatDate(o.created_at)+'</div></div>';
+      html+='<div style="padding:0 18px 12px"><div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)"><canvas id="ocv-'+i+'" class="ord-canvas"></canvas></div></div>';
+
+      html+='<div class="px-5 pb-3">';
+      html+='<div class="grid grid-cols-3 sm:grid-cols-5 gap-2">';
+      html+='<div class="ord-spec"><div class="text-xs" style="color:var(--muted)">Thickness</div><div class="text-sm font-bold">'+(c.thickness||'?')+' mm</div></div>';
+      html+='<div class="ord-spec"><div class="text-xs" style="color:var(--muted)">Size</div><div class="text-sm font-bold">'+(c.width||'?')+'×'+(c.length||'?')+'</div></div>';
+      html+='<div class="ord-spec"><div class="text-xs" style="color:var(--muted)">Weight</div><div class="text-sm font-bold">'+weight.toFixed(2)+' kg</div></div>';
+      html+='<div class="ord-spec"><div class="text-xs" style="color:var(--muted)">Corner</div><div class="text-sm font-bold">'+(c.cornerRadius>0?'R'+c.cornerRadius:'Sharp')+'</div></div>';
+      html+='<div class="ord-spec"><div class="text-xs" style="color:var(--muted)">Holes</div><div class="text-sm font-bold">'+holeText+'</div></div>';
+      html+='</div></div>';
+
+      html+='<div class="mx-5 mb-4 px-4 py-3 flex flex-wrap items-center justify-between gap-3" style="border-top:1px solid var(--border);border-radius:10px;background:rgba(212,132,44,.03)">';
+      html+='<div class="flex items-center gap-4">';
+      html+='<div><div class="text-xs" style="color:var(--muted)">Pan Price</div><div class="text-lg font-bold" style="color:var(--accent)">RM '+price.toFixed(2)+'</div></div>';
+      html+='<div style="width:1px;height:28px;background:var(--border)"></div>';
+      html+='<div><div class="text-xs" style="color:var(--muted)">Shipping</div><div class="text-sm font-bold" style="color:'+(isFreeShip?'var(--ok)':'var(--text)')+'">'+(isFreeShip?'<i class="fas fa-check mr-1" style="font-size:10px"></i>Free':'RM '+shipCost.toFixed(2))+'</div></div>';
+      html+='</div>';
+      html+='<div class="text-right">';
+      html+='<div class="text-xs" style="color:var(--muted)">Total'+(isFreeShip?' (incl. shipping)':'')+'</div>';
+      html+='<div class="text-xl font-bold">RM '+totalWithShip.toFixed(2)+'</div>';
+      html+='</div></div>';
+
+      /* Review section */
+      if(o.status==='completed'){
+        var rv=reviewMap[o.id]||null;
+        html+='<div class="px-5 pb-4">';
+        html+='<div class="ord-divider" style="margin:0 0 14px 0"></div>';
+        if(rv){
+          var stars='';
+          for(var si=1;si<=5;si++){
+            stars+='<i class="fas fa-star" style="font-size:13px;color:'+(si<=rv.rating?'#EAB308':'var(--border)')+'"></i>';
+          }
+          html+='<div class="flex items-center gap-2 mb-2">'+stars+'<span class="text-xs" style="color:var(--muted)">· '+formatDate(rv.created_at)+'</span></div>';
+          if(rv.comment){
+            html+='<p class="text-sm mb-3" style="color:var(--text);line-height:1.6;font-style:italic">"'+rv.comment.replace(/</g,'&lt;')+'"</p>';
+          }
+          if(rv.images&&rv.images.length>0){
+            html+='<div class="flex gap-2 flex-wrap">';
+            for(var ii=0;ii<rv.images.length;ii++){
+              html+='<div style="width:72px;height:72px;border-radius:8px;overflow:hidden;border:1px solid var(--border);cursor:pointer" onclick="openReviewImg(\''+rv.images[ii]+'\')">';
+              html+='<img src="'+rv.images[ii]+'" style="width:100%;height:100%;object-fit:cover" loading="lazy">';
+              html+='</div>';
+            }
+            html+='</div>';
+          }
+        }else{
+          html+='<div class="flex items-center justify-between" style="padding:12px 16px;border-radius:10px;border:1px dashed var(--border)">';
+          html+='<div class="flex items-center gap-2"><i class="fas fa-star text-xs" style="color:var(--accent)"></i><span class="text-sm" style="color:var(--muted)">No review yet</span></div>';
+          html+='<a href="review.html?id='+o.id+'" class="bp" style="padding:8px 16px;font-size:13px"><i class="fas fa-pen mr-1"></i>Leave Review</a>';
+          html+='</div>';
+        }
+        html+='</div>';
+      }
+
+      html+='</div>';
+      html+='</div>';
+    }
+
+    document.getElementById('ord-list').innerHTML=html;
+    document.getElementById('ord-list').style.display='flex';
+
+  }catch(e){
+    console.error(e);
+    document.getElementById('ord-loading').style.display='none';
+    document.getElementById('ord-empty').style.display='block';
+  }
+}
+
+var rsz;
+window.addEventListener('resize',function(){
+  clearTimeout(rsz);
+  rsz=setTimeout(function(){
+    for(var id in canvasConfigs){
+      var cv=document.getElementById(id);
+      if(cv&&cv.closest('.ord-row.open')){drawOrderPan(id,canvasConfigs[id])}
+    }
+  },200);
+});
+
+loadOrders();
+</script>
+</body>
+</html>

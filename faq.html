@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STEVPAN — FAQ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .faq-item { border-bottom: 1px solid var(--border, #2a2a2a); }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-q {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 0; cursor: pointer; user-select: none;
+    transition: color .2s;
+  }
+  .faq-q:hover { color: var(--accent, #D4842C); }
+  .faq-q h3 { font-size: 15px; font-weight: 500; color: var(--text); margin: 0; transition: color .2s; }
+  .faq-q:hover h3 { color: var(--accent, #D4842C); }
+  .faq-arrow { color: var(--muted); font-size: 12px; transition: transform .3s, color .3s; flex-shrink: 0; margin-left: 12px; }
+  .faq-item.open .faq-arrow { transform: rotate(180deg); color: var(--accent, #D4842C); }
+  .faq-a {
+    max-height: 0; overflow: hidden;
+    transition: max-height .3s ease;
+  }
+  .faq-item.open .faq-a { max-height: 300px; }
+  .faq-a p { padding: 0 0 18px; font-size: 14px; line-height: 1.8; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header class="border-b" style="border-color:var(--border);background:var(--bg-card)">
+  <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+    <a href="index.html" class="bo text-xs"><i class="fas fa-arrow-left mr-1"></i> Back to Shop</a>
+    <div class="flex items-center gap-2">
+      <div style="width:28px;height:28px;background:var(--accent);border-radius:6px" class="flex items-center justify-center"><i class="fas fa-fire" style="color:#fff;font-size:12px"></i></div>
+      <span class="text-sm font-bold tracking-wide" style="letter-spacing:.08em">STEVPAN</span>
+    </div>
+    <div style="width:90px"></div>
+  </div>
+</header>
+
+<main class="max-w-3xl mx-auto px-6 py-10">
+
+  <div class="text-center mb-10">
+    <h2 class="text-3xl font-bold mb-2">Frequently Asked Questions</h2>
+    <p class="text-sm" style="color:var(--muted)">Can't find your answer? <a href="index.html" style="color:var(--accent)" class="underline">Contact us on WhatsApp</a>.</p>
+  </div>
+
+  <div class="sc" style="padding:8px 24px">
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <h3>What material are the pans made from?</h3>
+        <i class="fas fa-chevron-down faq-arrow"></i>
+      </div>
+      <div class="faq-a"><p>All our pans are made from stainless steel (304 FOOD grade). Stainless steel density is 7,850 kg/m³. They are not non-stick coated — they are raw stainless steel pans finishing with hairline texture designed for high-heat cooking.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <h3>How long does delivery take?</h3>
+        <i class="fas fa-chevron-down faq-arrow"></i>
+      </div>
+      <div class="faq-a"><p>Production starts within 3-5 business days after payment. Typical total delivery time is 5-10 business days depending on your location and current order volume. Sabah/Sarawak orders may take slightly longer.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <h3>Can I cancel my order?</h3>
+        <i class="fas fa-chevron-down faq-arrow"></i>
+      </div>
+      <div class="faq-a"><p>Yes, but only before production starts. Once your order status changes to "In Production", cancellation is no longer possible since the pan is being custom-manufactured to your specifications. Please contact us immediately if you need to cancel.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <h3>What if the pan has defects?</h3>
+        <i class="fas fa-chevron-down faq-arrow"></i>
+      </div>
+      <div class="faq-a"><p>If your pan arrives with manufacturing defects or doesn't match your order specifications, contact us within 7 days with photos. We'll arrange a free replacement. See our <a href="refund.html" style="color:var(--accent)" class="underline">Return & Refund Policy</a> for details.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <h3>Do you ship to Sabah and Sarawak?</h3>
+        <i class="fas fa-chevron-down faq-arrow"></i>
+      </div>
+      <div class="faq-a"><p>Yes, we ship nationwide. Shipping rates for East Malaysia are higher due to courier costs. Exact rates are calculated based on your order weight and shown before checkout.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <h3>What payment methods do you accept?</h3>
+        <i class="fas fa-chevron-down faq-arrow"></i>
+      </div>
+      <div class="faq-a"><p>We accept FPX (online banking transfer) and credit/debit cards (Visa, Mastercard) through CHIP, a Malaysian payment gateway approved by Bank Negara Malaysia.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <h3>Can I order multiple pans at once?</h3>
+        <i class="fas fa-chevron-down faq-arrow"></i>
+      </div>
+      <div class="faq-a"><p>Currently, each order is for one pan configuration. If you need multiple pans, you can place separate orders. Contact us on WhatsApp if you need a bulk order — we may be able to offer a discount.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <h3>What size pan should I get?</h3>
+        <i class="fas fa-chevron-down faq-arrow"></i>
+      </div>
+      <div class="faq-a"><p>The most popular size is 300×400mm at 5mm thickness, which fits standard home ovens. Our configurator shows the exact weight and price as you adjust dimensions. If unsure, check your oven's internal dimensions first.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <h3>Are ventilation holes necessary?</h3>
+        <i class="fas fa-chevron-down faq-arrow"></i>
+      </div>
+      <div class="faq-a"><p>They're optional and free. Ventilation holes help with air circulation and steam release, which can improve crust quality. You can choose no holes, a center hole, a square pattern, or a ring pattern. All patterns are included at no extra cost.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <h3>How do I track my order?</h3>
+        <i class="fas fa-chevron-down faq-arrow"></i>
+      </div>
+      <div class="faq-a"><p>After payment, you'll receive an Order ID. Go to our <a href="track.html" style="color:var(--accent)" class="underline">Track Order</a> page, enter your Order ID, and you'll see real-time status updates from Pending → In Production → Shipping → Delivered.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        <h3>Is the steel food-safe?</h3>
+        <i class="fas fa-chevron-down faq-arrow"></i>
+      </div>
+      <div class="faq-a"><p>Stainless steel is widely used in commercial kitchens worldwide. New pans should be seasoned (heated with oil) before first use to create a natural non-stick surface and prevent rust. We do not apply any chemical coatings — it's pure stainless steel.</p></div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="text-center py-6 text-xs" style="color:var(--muted);border-top:1px solid var(--border)">STEVPAN Malaysia &middot; Custom Steel Pizza Pans</footer>
+</body>
+</html>

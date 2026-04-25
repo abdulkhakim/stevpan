@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STEVPAN — Payment Failed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    :root {
+      --bg: #0B0B0B;
+      --bg-card: #161616;
+      --bg-el: #1E1E1E;
+      --accent: #D4842C;
+      --accent-lt: #EAA54A;
+      --accent-dm: #8B5A1E;
+      --steel: #8A8D90;
+      --steel-lt: #C8CACD;
+      --steel-dk: #555860;
+      --text: #ECECEC;
+      --muted: #6E6E6E;
+      --border: #2A2A2A;
+      --ok: #3DAA5C;
+      --warn: #D4922C;
+      --err: #C94444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    .sc { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .bp { background: var(--accent); color: #fff; font-family: inherit; font-weight: 600; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; transition: all .2s; }
+    .bp:hover { background: var(--accent-lt); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(212,132,44,.3); }
+    .bo { background: transparent; color: var(--text); border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 13px; transition: all .2s; }
+    .bo:hover { border-color: var(--accent); color: var(--accent); }
+    @keyframes fu { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .fu { animation: fu .5s ease-out forwards; }
+    @keyframes pulseRing { 0% { transform: scale(0.8); opacity: 0.6; } 50% { transform: scale(1.15); opacity: 0; } 100% { transform: scale(0.8); opacity: 0; } }
+    @keyframes shakeIcon { 0%,100% { transform: translateX(0); } 15% { transform: translateX(-6px); } 30% { transform: translateX(6px); } 45% { transform: translateX(-4px); } 60% { transform: translateX(4px); } 75% { transform: translateX(-2px); } 90% { transform: translateX(2px); } }
+    .page { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; position: relative; }
+    .page::before { content: ''; position: fixed; top: 50%; left: 50%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(201,68,68,.08) 0%, transparent 70%); transform: translate(-50%, -50%); pointer-events: none; }
+    .container { max-width: 480px; width: 100%; text-align: center; }
+    .icon-wrap { position: relative; width: 88px; height: 88px; margin: 0 auto 28px; }
+    .icon-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--err); animation: pulseRing 2.5s ease-out infinite; }
+    .icon-circle { position: relative; width: 88px; height: 88px; border-radius: 50%; background: rgba(201,68,68,.1); border: 2px solid rgba(201,68,68,.3); display: flex; align-items: center; justify-content: center; animation: shakeIcon .6s ease-in-out .3s both; }
+    .icon-circle svg { width: 36px; height: 36px; }
+    .title { font-size: 26px; font-weight: 700; color: var(--text); margin-bottom: 10px; letter-spacing: -0.3px; }
+    .subtitle { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 32px; max-width: 360px; margin-left: auto; margin-right: auto; }
+    .reasons-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: left; margin-bottom: 28px; }
+    .reasons-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--steel); margin-bottom: 14px; }
+    .reason-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; }
+    .reason-item + .reason-item { border-top: 1px solid var(--border); }
+    .reason-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--steel-dk); flex-shrink: 0; margin-top: 6px; }
+    .reason-text { font-size: 13px; color: var(--steel-lt); line-height: 1.5; }
+    .order-ref { font-size: 12px; color: var(--muted); margin-bottom: 28px; }
+    .order-ref span { color: var(--steel); font-weight: 500; }
+    .btn-group { display: flex; flex-direction: column; gap: 12px; }
+    .btn-group .bp { width: 100%; padding: 14px 24px; font-size: 15px; }
+    .btn-group .bo { width: 100%; padding: 12px 16px; font-size: 14px; }
+    .d1 { animation-delay: .05s; opacity: 0; }
+    .d2 { animation-delay: .15s; opacity: 0; }
+    .d3 { animation-delay: .25s; opacity: 0; }
+    .d4 { animation-delay: .35s; opacity: 0; }
+    .d5 { animation-delay: .45s; opacity: 0; }
+    .d6 { animation-delay: .55s; opacity: 0; }
+    .support-link { display: inline-block; margin-top: 24px; font-size: 13px; color: var(--muted); text-decoration: none; transition: color .2s; }
+    .support-link:hover { color: var(--accent); }
+    .support-link svg { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; }
+    @media (max-width: 480px) { .title { font-size: 22px; } .icon-wrap { width: 72px; height: 72px; } .icon-circle { width: 72px; height: 72px; } .icon-circle svg { width: 30px; height: 30px; } .icon-ring { width: 72px; height: 72px; } }
+  </style>
+</head>
+<body>
+
+  <div class="page">
+    <div class="container">
+      <div class="icon-wrap fu d1">
+        <div class="icon-ring"></div>
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#C94444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+      </div>
+      <h1 class="title fu d2">Payment Failed</h1>
+      <p class="subtitle fu d3">Your transaction could not be completed. No charges have been made to your account.</p>
+      <div class="reasons-card fu d4">
+        <div class="reasons-title">Possible reasons</div>
+        <div class="reason-item"><div class="reason-dot"></div><div class="reason-text">Insufficient funds or card limit reached</div></div>
+        <div class="reason-item"><div class="reason-dot"></div><div class="reason-text">Card details entered incorrectly</div></div>
+        <div class="reason-item"><div class="reason-dot"></div><div class="reason-text">Bank declined the transaction (contact your bank)</div></div>
+        <div class="reason-item"><div class="reason-dot"></div><div class="reason-text">Network timeout — try again in a moment</div></div>
+      </div>
+      <div class="order-ref fu d5">Reference: <span id="orderRef">—</span></div>
+      <div class="btn-group fu d6">
+        <button class="bp" onclick="window.location.href='checkout.html'">Try Again</button>
+        <button class="bo" onclick="window.location.href='index.html'">Back to Home</button>
+      </div>
+      <a href="mailto:support@stevpan.com" class="support-link fu d6">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+        Need help? Contact support
+      </a>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var ref = params.get('ref') || params.get('order');
+      if (ref) {
+        document.getElementById('orderRef').textContent = ref;
+      } else {
+        var id = 'SP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+        document.getElementById('orderRef').textContent = id;
+      }
+    })();
+  </script>
+</body>
+</html>
