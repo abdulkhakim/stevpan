@@ -1,0 +1,285 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STEVPAN — Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  .sd{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+  #miniPan{display:block;width:100%;border-radius:8px;background:#0F0F0F}
+  .sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .sync-on{background:var(--ok)}.sync-off{background:var(--err)}.sync-ing{background:var(--warn);animation:sp .7s linear infinite}
+</style>
+
+
+</head>
+<body>
+<!-- LOGIN SCREEN (Hidden by default) -->
+<div id="login-view" style="display:none; align-items:center; justify-content:center; min-height:100vh; background:var(--bg); padding:20px;">
+  <div class="sc" style="max-width:360px; width:100%;">
+    <div class="text-center mb-6">
+      <div style="width:50px; height:50px; background:var(--accent); border-radius:10px; display:inline-flex; align-items:center; justify-content:center; margin-bottom:16px;">
+        <i class="fas fa-lock" style="color:#fff; font-size:20px;"></i>
+      </div>
+      <h2 class="text-xl font-bold">Admin Access</h2>
+      <p class="text-xs" style="color:var(--muted)">Please log in to manage orders.</p>
+    </div>
+    
+    <div style="margin-bottom:12px;">
+      <label class="text-xs font-medium block mb-1" style="color:var(--muted)">Email</label>
+      <input id="login-email" type="email" class="inf" placeholder="admin@stevpan.com">
+    </div>
+    
+    <div style="margin-bottom:20px;">
+      <label class="text-xs font-medium block mb-1" style="color:var(--muted)">Password</label>
+      <input id="login-pass" type="password" class="inf" placeholder="••••••••">
+    </div>
+    
+    <button class="bp w-full" id="btn-login" style="padding:14px;">Login</button>
+  </div>
+</div>
+<div id="view-admin" style="display:none">
+  <header class="border-b" style="border-color:var(--border);background:var(--bg-card)">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div style="width:36px;height:36px;background:var(--steel-dk);border-radius:8px" class="flex items-center justify-center"><i class="fas fa-shield-halved" style="color:#fff;font-size:14px"></i></div>
+        <div><h1 class="text-lg font-bold tracking-wide">STEVPAN ADMIN</h1><p class="text-xs" style="color:var(--muted)">Order Management</p></div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 text-xs" style="color:var(--muted)"><span class="sync-dot sync-ing" id="sync-dot"></span><span id="sync-label">Syncing...</span></div>
+        <div class="flex gap-2">
+  <button id="btn-logout" class="bo" title="Logout"><i class="fas fa-right-from-bracket"></i></button>
+  <a href="index.html" class="bo"><i class="fas fa-arrow-left mr-1"></i> Back to Shop</a>
+</div>
+      </div>
+    </div>
+  </header>
+  <main class="max-w-7xl mx-auto px-6 py-8">
+
+    <div class="sc mb-6" style="border-color:var(--accent-dm);background:linear-gradient(135deg,rgba(212,132,44,.04),transparent)">
+      <div class="flex items-center justify-between mb-4">
+        <div class="text-sm font-semibold"><i class="fas fa-sliders mr-1" style="color:var(--accent)"></i> PRICING SETTINGS</div>
+        <div class="text-xs" style="color:var(--muted)">Steel density: 7,850 kg/m³</div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+        <div><label class="text-xs font-medium block mb-1" style="color:var(--muted)">Market Price per kg (RM)</label><div class="flex items-center gap-1"><span class="text-sm" style="color:var(--muted)">RM</span><input type="number" id="inp-mp" class="inf" step="0.10" min="0" style="flex:1"></div></div>
+        <div><label class="text-xs font-medium block mb-1" style="color:var(--muted)">Margin (%)</label><div class="flex items-center gap-2"><input type="range" id="rng-mg" min="0" max="200" step="1" style="flex:1"><span id="mg-val" class="text-sm font-mono font-bold" style="min-width:42px;text-align:right;color:var(--accent)">40%</span></div></div>
+        <div><label class="text-xs font-medium block mb-1" style="color:var(--muted)">Labour per Pan (RM)</label><div class="flex items-center gap-1"><span class="text-sm" style="color:var(--muted)">RM</span><input type="number" id="inp-labour" class="inf" step="1" min="0" style="flex:1"></div><div class="text-xs mt-1" style="color:var(--muted)">Cutting, bending, finishing</div></div>
+        <div><label class="text-xs font-medium block mb-1" style="color:var(--muted)">Effective Rate per kg</label><div class="flex items-baseline gap-1"><span class="text-sm" style="color:var(--muted)">RM</span><span id="eff-rate" class="text-xl font-bold" style="color:var(--accent)">6.30</span><span class="text-xs" style="color:var(--muted)">/kg</span></div><div class="text-xs mt-1" style="color:var(--muted)">market × (1 + margin)</div></div>
+        <div><label class="text-xs font-medium block mb-1" style="color:var(--muted)">Example (300×250×5mm)</label><div id="ex-calc" class="text-sm" style="color:var(--text)"></div></div>
+      </div>
+      <button class="bp" id="btn-save-set" style="padding:10px 24px"><i class="fas fa-save mr-1"></i> Save Settings</button>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8" id="admin-stats"></div>
+    <div class="flex gap-1 mb-6 border-b" style="border-color:var(--border)" id="ftabs">
+      <button class="tg active" data-f="all">All</button>
+      <button class="tg" data-f="pending">Pending</button>
+      <button class="tg" data-f="production">Production</button>
+      <button class="tg" data-f="shipping">Shipping</button>
+      <button class="tg" data-f="completed">Completed</button>
+    </div>
+    <div class="sc" style="padding:0;overflow:hidden">
+      <div style="overflow-x:auto"><table class="w-full text-sm"><thead><tr style="background:var(--bg-el);color:var(--muted)">
+        <th class="text-left px-4 py-3 font-medium">Order ID</th>
+        <th class="text-left px-4 py-3 font-medium">Customer</th>
+        <th class="text-left px-4 py-3 font-medium">Specs</th>
+        <th class="text-left px-4 py-3 font-medium">Weight</th>
+        <th class="text-left px-4 py-3 font-medium">Price</th>
+        <th class="text-left px-4 py-3 font-medium">Status</th>
+        <th class="text-left px-4 py-3 font-medium">Date</th>
+        <th class="text-left px-4 py-3 font-medium">Action</th>
+      </tr></thead><tbody id="otbody"><tr><td colspan="8" class="text-center py-8"><div class="spn mx-auto mb-2"></div><div class="text-xs" style="color:var(--muted)">Loading orders...</div></td></tr></tbody></table></div>
+      <div id="no-ord" class="text-center py-12" style="color:var(--muted);display:none">
+        <i class="fas fa-inbox text-3xl mb-3 block" style="color:var(--border)"></i>
+        <p>No orders found</p>
+        <button class="bo mt-3 text-xs" id="btn-demo">Load Demo Orders</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="m-det" class="mo" style="display:none"><div class="mb" style="max-width:620px"><div id="det-c"></div></div></div>
+<div id="toast" class="toast"><span id="toast-m"></span></div>
+
+<script>
+var SB_URL='https://uwshuhapmqucxcxqnaqk.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3c2h1aGFwbXF1Y3hjeHFuYXFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1OTM4MTQsImV4cCI6MjA5MjE2OTgxNH0.x0ahvlVthcaOUVz84Hv3V7ILUUgojxsitH0i4rbt6Lw';
+var sb=window.supabase.createClient(SB_URL,SB_KEY);
+
+var PATTERNS=[{key:'none',label:'None'},{key:'center',label:'Center'},{key:'square',label:'Square'},{key:'ring',label:'Ring'}];
+function inPan(x,y,w,h,r,m){if(x<m||x>w-m||y<m||y>h-m)return false;if(r<=0)return true;var lx=x-m,ly=y-m,lw=w-2*m,lh=h-2*m,cr=Math.min(r,lw/2,lh/2);if(lx<0||lx>lw||ly<0||ly>lh)return false;if(lx<cr&&ly<cr)return(lx-cr)*(lx-cr)+(ly-cr)*(ly-cr)<=cr*cr;if(lx>lw-cr&&ly<cr)return(lx-(lw-cr))*(lx-(lw-cr))+(ly-cr)*(ly-cr)<=cr*cr;if(lx<cr&&ly>lh-cr)return(lx-cr)*(lx-cr)+(ly-(lh-cr))*(ly-(lh-cr))<=cr*cr;if(lx>lw-cr&&ly>lh-cr)return(lx-(lw-cr))*(lx-(lw-cr))+(ly-(lh-cr))*(ly-(lh-cr))<=cr*cr;return true}
+function getHolePositions(pattern,holes,panW,panL,cornerRadius){var res=[];if(pattern==='none')return res;var mg,cx=panW/2,cy=panL/2;var ok=function(x,y,d){mg=d/2+3;return inPan(x,y,panW,panL,cornerRadius,mg)};switch(pattern){case'center':if(ok(cx,cy,holes.diameter))res.push({x:cx,y:cy,d:holes.diameter});break;case'square':{if(ok(cx,cy,holes.centerDia))res.push({x:cx,y:cy,d:holes.centerDia});var pts=[[cx-holes.hDist/2,cy-holes.vDist/2],[cx+holes.hDist/2,cy-holes.vDist/2],[cx-holes.hDist/2,cy+holes.vDist/2],[cx+holes.hDist/2,cy+holes.vDist/2]];for(var i=0;i<pts.length;i++){if(ok(pts[i][0],pts[i][1],holes.edgeDia))res.push({x:pts[i][0],y:pts[i][1],d:holes.edgeDia})}break}case'ring':{var n=holes.count,radius=holes.pcd/2;for(var i=0;i<n;i++){var a=(2*Math.PI*i)/n-Math.PI/2;var x=cx+Math.cos(a)*radius,y=cy+Math.sin(a)*radius;if(ok(x,y,holes.diameter))res.push({x:x,y:y,d:holes.diameter})}break}}return res}
+function holeDesc(h,cnt){if(h.pattern==='none')return'No ventilation holes';if(h.pattern==='center')return'Center \u00D8'+h.diameter+'mm \u2014 1 hole';if(h.pattern==='square')return'Square \u2014 center \u00D8'+h.centerDia+'mm, 4\u00D7\u00D8'+h.edgeDia+'mm (H:'+h.hDist+'mm V:'+h.vDist+'mm) \u2014 '+cnt+' holes';if(h.pattern==='ring')return cnt+'\u00D7\u00D8'+h.diameter+'mm on PCD '+h.pcd+'mm';return''}
+function gO(){try{return JSON.parse(localStorage.getItem('sf_o')||'[]')}catch(e){return[]}}
+function sO(o){localStorage.setItem('sf_o',JSON.stringify(o))}
+function aO(o){var a=gO();a.unshift(o);sO(a)}
+function uOS(id,s){var a=gO();var o=a.find(function(x){return x.id===id});if(o){o.status=s;sO(a)}}
+function dO(id){sO(gO().filter(function(x){return x.id!==id}))}
+function rn(v){return Math.round(v*100)/100}
+function calc(c){var volMm3=c.width*c.length*c.thickness;var weightKg=(volMm3/1e9)*7850;var marketPrice=parseFloat(localStorage.getItem('sf_market_price'))||4.50;var margin=parseFloat(localStorage.getItem('sf_margin'))||40;var labour=parseFloat(localStorage.getItem('sf_labour_price'))||15;var materialCost=weightKg*marketPrice;var marginAmount=materialCost*(margin/100);return{weight:rn(weightKg),marketPrice:rn(marketPrice),materialCost:rn(materialCost),marginPct:margin,marginAmount:rn(marginAmount),labourPrice:rn(labour),total:rn(Math.max(25,materialCost+marginAmount+labour))}}
+function toast(m,t){t=t||'info';var el=document.getElementById('toast');var ic=t==='ok'?'fa-circle-check':t==='err'?'fa-circle-xmark':'fa-circle-info';var cl=t==='ok'?'var(--ok)':t==='err'?'var(--err)':'var(--accent)';document.getElementById('toast-m').innerHTML='<i class="fas '+ic+' mr-2" style="color:'+cl+'"></i>'+m;el.classList.add('show');setTimeout(function(){el.classList.remove('show')},3500)}
+
+var STATUS_FLOW=['pending','production','shipping','completed'];
+var STATUS_META={pending:{label:'Pending',badge:'bg-p',icon:'fa-clock',color:'var(--warn)'},production:{label:'Production',badge:'bg-r',icon:'fa-gear',color:'#60A5FA'},shipping:{label:'Shipping',badge:'bg-s',icon:'fa-truck',color:'var(--accent)'},completed:{label:'Completed',badge:'bg-c',icon:'fa-circle-check',color:'var(--ok)'}};
+var curF='all';
+
+function setSync(state){var dot=document.getElementById('sync-dot'),lbl=document.getElementById('sync-label');dot.className='sync-dot sync-'+(state==='ok'?'on':state==='err'?'off':'ing');lbl.textContent=state==='ok'?'Connected':state==='err'?'Disconnected':'Syncing...'}
+
+async function syncOrders(){setSync('ing');var {data,error}=await sb.from('orders').select('*').order('created_at',{ascending:false});if(error){setSync('err');renderAd();return}if(data&&data.length){var orders=data.map(function(r){return{id:r.id,date:r.created_at,customer:{name:r.customer_name,phone:r.customer_phone,email:r.customer_email,address:r.customer_address,notes:r.customer_notes},config:r.config,price:parseFloat(r.price),pricing:r.pricing,paymentMethod:r.payment_method,status:r.status}});sO(orders)}setSync('ok');renderAd()}
+
+async function syncSettings(){var {data}=await sb.from('settings').select('*');if(!data)return;data.forEach(function(r){localStorage.setItem('sf_'+r.key,r.value)});applySettingsUI()}
+
+function applySettingsUI(){var mp=parseFloat(localStorage.getItem('sf_market_price'))||4.50;var mg=parseFloat(localStorage.getItem('sf_margin'))||40;var lb=parseFloat(localStorage.getItem('sf_labour_price'))||15;document.getElementById('inp-mp').value=mp.toFixed(2);document.getElementById('rng-mg').value=mg;document.getElementById('mg-val').textContent=mg+'%';document.getElementById('inp-labour').value=lb.toFixed(0);updEffRate(mp,mg,lb)}
+function loadSettings(){applySettingsUI();syncSettings()}
+function updEffRate(mp,mg,lb){document.getElementById('eff-rate').textContent=(mp*(1+mg/100)).toFixed(2);var exW=(300*250*5/1e9)*7850,exCost=exW*mp,exMargin=exCost*(mg/100),exTotal=Math.max(25,exCost+exMargin+lb);document.getElementById('ex-calc').innerHTML='<div class="font-medium">'+exW.toFixed(2)+' kg \u2192 <span style="color:var(--accent)">RM '+exTotal.toFixed(2)+'</span></div><div class="text-xs" style="color:var(--muted)">mat RM '+exCost.toFixed(2)+' + margin RM '+exMargin.toFixed(2)+' + labour RM '+lb.toFixed(0)+'</div>'}
+
+document.getElementById('inp-mp').addEventListener('input',function(){updEffRate(parseFloat(this.value)||0,parseFloat(document.getElementById('rng-mg').value)||0,parseFloat(document.getElementById('inp-labour').value)||0)});
+document.getElementById('rng-mg').addEventListener('input',function(){var mg=parseFloat(this.value)||0;document.getElementById('mg-val').textContent=mg+'%';updEffRate(parseFloat(document.getElementById('inp-mp').value)||0,mg,parseFloat(document.getElementById('inp-labour').value)||0)});
+document.getElementById('inp-labour').addEventListener('input',function(){updEffRate(parseFloat(document.getElementById('inp-mp').value)||0,parseFloat(document.getElementById('rng-mg').value)||0,parseFloat(this.value)||0)});
+
+document.getElementById('btn-save-set').addEventListener('click',async function(){var mp=parseFloat(document.getElementById('inp-mp').value),mg=parseFloat(document.getElementById('rng-mg').value),lb=parseFloat(document.getElementById('inp-labour').value);if(isNaN(mp)||mp<0){toast('Enter a valid market price','err');return}if(isNaN(mg)||mg<0||mg>200){toast('Margin must be 0-200%','err');return}if(isNaN(lb)||lb<0){toast('Enter a valid labour price','err');return}localStorage.setItem('sf_market_price',mp.toFixed(2));localStorage.setItem('sf_margin',mg.toFixed(0));localStorage.setItem('sf_labour_price',lb.toFixed(0));var {error}=await sb.from('settings').upsert([{key:'market_price',value:mp.toFixed(2)},{key:'margin',value:mg.toFixed(0)},{key:'labour_price',value:lb.toFixed(0)}],{onConflict:'key'});if(error)toast('Saved locally but cloud sync failed','err');else toast('Pricing settings saved','ok');renderAd()});
+
+function drawMiniPan(canvasId,config){var cv=document.getElementById(canvasId);if(!cv)return;var dpr=window.devicePixelRatio||1;var dw=cv.clientWidth;var dh=Math.min(dw*0.65,200);cv.style.height=dh+'px';cv.width=dw*dpr;cv.height=dh*dpr;var ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);var pad=28,aw=dw-pad*2,ah=dh-pad*2,asp=config.width/config.length,pw,ph;if(aw/ah>asp){ph=ah;pw=ph*asp}else{pw=aw;ph=pw/asp}var px=(dw-pw)/2,py=(dh-ph)/2,sc=pw/config.width,cr=Math.min(config.cornerRadius*sc,pw/2,ph/2);var sg=ctx.createLinearGradient(px,py,px+pw,py+ph);sg.addColorStop(0,'#B0B0B0');sg.addColorStop(0.5,'#999');sg.addColorStop(1,'#888');ctx.beginPath();if(cr>0){ctx.moveTo(px+cr,py);ctx.lineTo(px+pw-cr,py);ctx.quadraticCurveTo(px+pw,py,px+pw,py+cr);ctx.lineTo(px+pw,py+ph-cr);ctx.quadraticCurveTo(px+pw,py+ph,px+pw-cr,py+ph);ctx.lineTo(px+cr,py+ph);ctx.quadraticCurveTo(px,py+ph,px,py+ph-cr);ctx.lineTo(px,py+cr);ctx.quadraticCurveTo(px,py,px+cr,py)}else{ctx.rect(px,py,pw,ph)}ctx.closePath();ctx.fillStyle=sg;ctx.fill();ctx.strokeStyle='rgba(200,200,200,.25)';ctx.lineWidth=1;ctx.stroke();var hps=getHolePositions(config.holes.pattern,config.holes,config.width,config.length,config.cornerRadius);for(var i=0;i<hps.length;i++){var hole=hps[i],hx=px+hole.x*sc,hy=py+hole.y*sc,hr=Math.max((hole.d/2)*sc,1.5);ctx.beginPath();ctx.arc(hx,hy,hr,0,Math.PI*2);ctx.fillStyle='#1a1a1a';ctx.fill();ctx.strokeStyle='rgba(150,150,150,.2)';ctx.lineWidth=0.5;ctx.stroke()}ctx.font='10px Space Grotesk,sans-serif';ctx.fillStyle='#D4842C';ctx.textAlign='center';ctx.fillText(config.width+'mm',px+pw/2,py+ph+16);ctx.save();ctx.translate(px-12,py+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText(config.length+'mm',0,0);ctx.restore()}
+
+/* ── Clickable stat cards with filter sync ── */
+function setActiveFilter(filterKey) {
+  curF = filterKey;
+  // Sync tab buttons
+  document.querySelectorAll('#ftabs .tg').forEach(function(x) {
+    x.classList.toggle('active', x.dataset.f === filterKey);
+  });
+  // Sync stat cards
+  document.querySelectorAll('.stat-card').forEach(function(x) {
+    x.classList.toggle('active', x.dataset.f === filterKey);
+  });
+  renderAd();
+}
+
+function renderAd(){
+  var ors=gO();
+  var fil=curF==='all'?ors:ors.filter(function(o){return o.status===curF});
+  
+  // 5 stat cards: All, Pending, Production, Shipping, Completed
+  var st=[
+    {l:'Total Orders',v:ors.length,i:'fa-box',c:'var(--accent)',f:'all'},
+    {l:'Pending',v:ors.filter(function(o){return o.status==='pending'}).length,i:'fa-clock',c:'var(--warn)',f:'pending'},
+    {l:'In Production',v:ors.filter(function(o){return o.status==='production'}).length,i:'fa-gear',c:'#60A5FA',f:'production'},
+    {l:'Shipping',v:ors.filter(function(o){return o.status==='shipping'}).length,i:'fa-truck',c:'var(--accent)',f:'shipping'},
+    {l:'Completed',v:ors.filter(function(o){return o.status==='completed'}).length,i:'fa-circle-check',c:'var(--ok)',f:'completed'}
+  ];
+  
+  var sh='';
+  for(var si=0;si<st.length;si++){
+    var s=st[si];
+    var isActive=curF===s.f;
+    sh+='<div class="sc stat-card'+(isActive?' active':'')+'" data-f="'+s.f+'" style="padding:16px;border-radius:12px;position:relative" title="Click to filter: '+s.l+'">';
+    // Subtle hover background overlay
+    sh+='<div style="position:absolute;inset:0;background:linear-gradient(135deg,'+s.c+'08,'+s.c+'03);border-radius:inherit;pointer-events:none;opacity:'+(isActive?'1':'0')+';transition:opacity .2s" class="stat-hover-bg"></div>';
+    sh+='<div class="flex items-center justify-between" style="position:relative">';
+    sh+='<div class="flex items-center gap-3">';
+    sh+='<div class="stat-icon-wrap" style="width:40px;height:40px;background:'+s.c+'15;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas '+s.i+'" style="color:'+s.c+';font-size:15px"></i></div>';
+    sh+='<div><div class="text-2xl font-bold">'+s.v+'</div><div class="text-xs" style="color:var(--muted)">'+s.l+'</div></div>';
+    sh+='</div>';
+    sh+='<div class="stat-arrow" style="color:var(--muted);font-size:11px"><i class="fas fa-arrow-right"></i></div>';
+    sh+='</div>';
+    // Active indicator bar at bottom
+    if(isActive){
+      sh+='<div style="position:absolute;bottom:0;left:16px;right:16px;height:2px;background:'+s.c+';border-radius:1px"></div>';
+    }
+    sh+='</div>';
+  }
+  document.getElementById('admin-stats').innerHTML=sh;
+  
+  var tb=document.getElementById('otbody'),no=document.getElementById('no-ord');
+  if(!fil.length){tb.innerHTML='';no.style.display='block';return}
+  no.style.display='none';
+  var th='';
+  for(var oi=0;oi<fil.length;oi++){
+    var o=fil[oi],d=new Date(o.date);
+    var ds=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    var h=o.config.holes,isP=h&&h.pattern&&h.pattern!=='none',cnt=o.config._holeCount||0;
+    var sp=o.config.width+'\u00D7'+o.config.length+'mm / '+o.config.thickness+'mm'+(isP?' / '+cnt+' hole(s)':'');
+    var meta=STATUS_META[o.status]||STATUS_META.pending;
+    var wt=o.pricing?o.pricing.weight:'\u2014';
+    var wtS=typeof wt==='number'?wt.toFixed(2)+' kg':wt;
+    th+='<tr style="border-top:1px solid var(--border)" class="hover:bg-white/[.02] transition-colors"><td class="px-4 py-3 font-mono text-xs font-medium">'+o.id+'</td><td class="px-4 py-3"><div class="text-sm">'+o.customer.name+'</div><div class="text-xs" style="color:var(--muted)">'+o.customer.email+'</div></td><td class="px-4 py-3 text-xs" style="color:var(--steel-lt)">'+sp+'</td><td class="px-4 py-3 text-xs font-mono">'+wtS+'</td><td class="px-4 py-3 text-sm font-medium" style="color:var(--accent)">RM '+o.price.toFixed(2)+'</td><td class="px-4 py-3"><span class="bg '+meta.badge+'">'+meta.label+'</span></td><td class="px-4 py-3 text-xs" style="color:var(--muted)">'+ds+'</td><td class="px-4 py-3"><button class="bo text-xs" data-act="vo" data-oid="'+o.id+'"><i class="fas fa-eye mr-1"></i>View</button></td></tr>';
+  }
+  tb.innerHTML=th;
+}
+
+function openDet(id){var o=gO().find(function(x){return x.id===id});if(!o)return;var d=new Date(o.date);var ds=d.toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});var h=o.config.holes,isP=h&&h.pattern&&h.pattern!=='none',cnt=o.config._holeCount||0;var meta=STATUS_META[o.status]||STATUS_META.pending;var pr=o.pricing||{};var stepper='<div class="flex items-center justify-between mb-6 px-2">';for(var si=0;si<STATUS_FLOW.length;si++){var s=STATUS_FLOW[si],m=STATUS_META[s],isA=si<=STATUS_FLOW.indexOf(o.status),isC=s===o.status;stepper+='<div class="flex flex-col items-center" style="flex:1"><div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:'+(isA?m.color+'20':'var(--border)')+';border:2px solid '+(isA?m.color:'var(--border)')+';'+(isC?'box-shadow:0 0 0 4px '+m.color+'25':'')+'"><i class="fas '+m.icon+'" style="font-size:12px;color:'+(isA?m.color:'var(--muted)')+'"></i></div><div class="text-xs mt-1 font-medium" style="color:'+(isA?'var(--text)':'var(--muted)')+'">'+m.label+'</div></div>';if(si<STATUS_FLOW.length-1){stepper+='<div style="flex:1;height:2px;background:'+(si<STATUS_FLOW.indexOf(o.status)?'var(--accent)':'var(--border)')+';margin:0 -4px;margin-bottom:20px;border-radius:1px"></div>'}}stepper+='</div>';var opts='';for(var i=0;i<STATUS_FLOW.length;i++){var sf=STATUS_FLOW[i];opts+='<option value="'+sf+'" '+(sf===o.status?'selected':'')+'>'+STATUS_META[sf].label+'</option>'}var hSec=isP?'<div class="mt-2"><div class="text-xs font-medium mb-1" style="color:var(--text)">'+cnt+' ventilation hole(s) \u2014 free</div><div class="px-2 py-1 text-xs" style="background:var(--bg);border-radius:4px;color:var(--steel-lt)">'+holeDesc(h,cnt)+'</div></div>':'<div class="mt-2 text-xs" style="color:var(--muted)">No ventilation holes</div>';var nH=o.customer.notes?'<div class="mt-1 pt-1" style="border-top:1px solid var(--border)"><i class="fas fa-note-sticky text-xs mr-2" style="color:var(--accent)"></i>'+o.customer.notes+'</div>':'';document.getElementById('det-c').innerHTML='<div class="p-6 border-b flex items-center justify-between" style="border-color:var(--border)"><div><div class="font-mono text-sm font-bold">'+o.id+'</div><div class="text-xs" style="color:var(--muted)">'+ds+'</div></div><div class="flex items-center gap-2"><span class="bg '+meta.badge+'">'+meta.label+'</span><button id="btn-xd" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px"><i class="fas fa-xmark"></i></button></div></div><div class="p-6 space-y-5"><div class="sc" style="padding:20px">'+stepper+'</div><div><div class="text-xs font-semibold mb-2" style="color:var(--muted)"><i class="fas fa-eye mr-1" style="color:var(--accent)"></i> PAN PREVIEW</div><div class="sc" style="padding:12px;background:var(--bg)"><canvas id="miniPan"></canvas></div></div><div><div class="text-xs font-semibold mb-2" style="color:var(--muted)"><i class="fas fa-user mr-1" style="color:var(--accent)"></i> CUSTOMER</div><div class="sc text-sm space-y-1" style="padding:12px;background:var(--bg)"><div><i class="fas fa-user text-xs mr-2" style="color:var(--accent)"></i>'+o.customer.name+'</div><div><i class="fas fa-phone text-xs mr-2" style="color:var(--accent)"></i>'+o.customer.phone+'</div><div><i class="fas fa-envelope text-xs mr-2" style="color:var(--accent)"></i>'+o.customer.email+'</div><div><i class="fas fa-location-dot text-xs mr-2" style="color:var(--accent)"></i>'+o.customer.address+'</div>'+nH+'</div></div><div><div class="text-xs font-semibold mb-2" style="color:var(--muted)"><i class="fas fa-ruler-combined mr-1" style="color:var(--accent)"></i> PAN SPECIFICATIONS</div><div class="grid grid-cols-2 gap-2"><div class="sc text-center" style="padding:10px;background:var(--bg)"><div class="text-lg font-bold">'+o.config.width+'<span class="text-xs font-normal ml-1">mm</span></div><div class="text-xs" style="color:var(--muted)">Width</div></div><div class="sc text-center" style="padding:10px;background:var(--bg)"><div class="text-lg font-bold">'+o.config.length+'<span class="text-xs font-normal ml-1">mm</span></div><div class="text-xs" style="color:var(--muted)">Length</div></div><div class="sc text-center" style="padding:10px;background:var(--bg)"><div class="text-lg font-bold">'+o.config.thickness+'<span class="text-xs font-normal ml-1">mm</span></div><div class="text-xs" style="color:var(--muted)">Thickness</div></div><div class="sc text-center" style="padding:10px;background:var(--bg)"><div class="text-lg font-bold">'+(o.config.cornerRadius>0?'R'+o.config.cornerRadius:'Sharp')+'</div><div class="text-xs" style="color:var(--muted)">Corners</div></div></div>'+hSec+'</div><div><div class="text-xs font-semibold mb-2" style="color:var(--muted)"><i class="fas fa-receipt mr-1" style="color:var(--accent)"></i> PRICING</div><div class="sc text-xs space-y-1" style="padding:12px;background:var(--bg)"><div class="flex justify-between"><span style="color:var(--muted)">Weight</span><span>'+(pr.weight?pr.weight.toFixed(2)+' kg':'\u2014')+'</span></div><div class="flex justify-between"><span style="color:var(--muted)">Market Price</span><span>'+(pr.marketPrice?'RM '+pr.marketPrice.toFixed(2)+'/kg':'\u2014')+'</span></div><div class="flex justify-between"><span style="color:var(--muted)">Material Cost</span><span>'+(pr.materialCost?'RM '+pr.materialCost.toFixed(2):'\u2014')+'</span></div><div class="flex justify-between"><span style="color:var(--muted)">Margin ('+(pr.marginPct||0)+'%)</span><span>'+(pr.marginAmount?'RM '+pr.marginAmount.toFixed(2):'\u2014')+'</span></div><div class="flex justify-between"><span style="color:var(--muted)">Labour</span><span>'+(pr.labourPrice?'RM '+pr.labourPrice.toFixed(2):'\u2014')+'</span></div><div class="flex justify-between pt-1 mt-1" style="border-top:1px solid var(--border);font-weight:600"><span>Total</span><span style="color:var(--accent)">RM '+o.price.toFixed(2)+'</span></div></div></div><div style="border-top:1px solid var(--border);padding-top:16px"><label class="text-xs font-semibold block mb-2" style="color:var(--muted)"><i class="fas fa-arrow-right-arrow-left mr-1" style="color:var(--accent)"></i> CHANGE STATUS</label><div class="flex gap-2"><select class="inf sd" style="flex:1" id="det-status">'+opts+'</select><button class="bp" id="btn-save-st" style="white-space:nowrap">Update</button></div></div><div class="flex justify-end"><button class="bo" style="color:var(--err);border-color:var(--err)" data-act="do" data-oid="'+o.id+'"><i class="fas fa-trash mr-1"></i>Delete Order</button></div></div></div>';document.getElementById('m-det').style.display='flex';requestAnimationFrame(function(){drawMiniPan('miniPan',o.config)});document.getElementById('btn-xd').addEventListener('click',closeDet);document.getElementById('btn-save-st').addEventListener('click',async function(){var newSt=document.getElementById('det-status').value;if(newSt===o.status){toast('Status unchanged','info');return}uOS(o.id,newSt);var {error}=await sb.from('orders').update({status:newSt}).eq('id',o.id);closeDet();renderAd();if(error)toast('Updated locally but cloud sync failed','err');else toast('Order '+o.id+' \u2192 '+STATUS_META[newSt].label,'ok')})}
+function closeDet(){document.getElementById('m-det').style.display='none'}
+
+function loadDemo(){var ds=[{width:300,length:250,thickness:5,cornerRadius:5,holes:{pattern:'square',diameter:10,centerDia:20,edgeDia:10,hDist:100,vDist:70,count:6,pcd:150},_holeCount:5},{width:350,length:300,thickness:6,cornerRadius:8,holes:{pattern:'ring',diameter:10,count:8,pcd:180,centerDia:20,edgeDia:10,hDist:80,vDist:60},_holeCount:8},{width:250,length:200,thickness:4,cornerRadius:0,holes:{pattern:'none',diameter:10,centerDia:20,edgeDia:10,hDist:80,vDist:60,count:6,pcd:150},_holeCount:0},{width:400,length:330,thickness:5,cornerRadius:10,holes:{pattern:'center',diameter:30,centerDia:20,edgeDia:10,hDist:80,vDist:60,count:6,pcd:150},_holeCount:1},{width:280,length:220,thickness:5,cornerRadius:3,holes:{pattern:'ring',diameter:8,count:6,pcd:120,centerDia:20,edgeDia:10,hDist:80,vDist:60},_holeCount:6}];var ns=['Ahmad bin Ismail','Sarah Tan','Kumar a/l Rajan','Nurul Aisyah','Lee Wei Jie'];var ss=['pending','production','shipping','completed','pending'];var ms=['fpx','cc','fpx','fpx','cc'];for(var i=0;i<ds.length;i++){var d=new Date();d.setDate(d.getDate()-(4-i));d.setHours(10+i*3,i*17);var oid='SP-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'-'+String(i+1).padStart(3,'0');var p=calc(ds[i]);var orderObj={id:oid,date:d.toISOString(),customer:{name:ns[i],phone:'012-'+(3456789+i*1111),email:ns[i].toLowerCase().replace(/[^a-z]/g,'')+'@email.com',address:(10+i*3)+', Jalan Maju '+(i+1)+', 50000 Kuala Lumpur',notes:i===2?'Food-grade oil coating pls':''},config:ds[i],price:p.total,pricing:p,paymentMethod:ms[i],status:ss[i]};aO(orderObj);sb.from('orders').insert({id:oid,customer_name:ns[i],customer_phone:'012-'+(3456789+i*1111),customer_email:ns[i].toLowerCase().replace(/[^a-z]/g,'')+'@email.com',customer_address:(10+i*3)+', Jalan Maju '+(i+1)+', 50000 Kuala Lumpur',customer_notes:i===2?'Food-grade oil coating pls':null,config:ds[i],price:p.total,pricing:p,payment_method:ms[i],status:ss[i],created_at:d.toISOString()})}renderAd();toast('Demo orders loaded','ok')}
+
+document.addEventListener('click',function(e){
+  // Handle stat card clicks
+  var statCard=e.target.closest('.stat-card');
+  if(statCard){
+    setActiveFilter(statCard.dataset.f);
+    return;
+  }
+  
+  var t=e.target;
+  if(t.closest('#ftabs .tg')){
+    var b=t.closest('#ftabs .tg');
+    setActiveFilter(b.dataset.f);
+    return;
+  }
+  if(t.id==='btn-demo'){loadDemo();return}
+  if(t.closest('[data-act="vo"]')){openDet(t.closest('[data-act="vo"]').dataset.oid);return}
+  if(t.closest('[data-act="do"]')){
+    var delId=t.closest('[data-act="do"]').dataset.oid;
+    dO(delId);
+    sb.from('orders').delete().eq('id',delId);
+    closeDet();
+    renderAd();
+    return;
+  }
+});
+document.getElementById('m-det').addEventListener('click',function(e){if(e.target===this)closeDet()});
+
+loadSettings();
+syncOrders();
+
+/* ── ADMIN LOGIN LOGIC ── */
+async function checkAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    document.getElementById('view-admin').style.display = 'block';
+    document.getElementById('login-view').style.display = 'none';
+    loadSettings();
+    syncOrders();
+  } else {
+    document.getElementById('view-admin').style.display = 'none';
+    document.getElementById('login-view').style.display = 'flex';
+  }
+}
+
+document.getElementById('btn-login').addEventListener('click', async function() {
+  var email = document.getElementById('login-email').value;
+  var password = document.getElementById('login-pass').value;
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    alert('Login Failed: ' + error.message);
+  } else {
+    checkAuth();
+  }
+});
+
+document.getElementById('btn-logout').addEventListener('click', async function() {
+  await sb.auth.signOut();
+  checkAuth();
+});
+
+checkAuth();
+</script>
+</body>
+</html>
