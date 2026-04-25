@@ -1,0 +1,662 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STEVPAN — Custom Pizza Pan Configurator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+
+<style>
+/* ===== SIZE TAB STYLES ===== */
+.size-tab-nav {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  background: var(--bg, #0a0a0a);
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid var(--border, #1a1a1a);
+  position: relative;
+}
+
+.size-tab {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--muted, #666);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  z-index: 1;
+}
+
+.size-tab:hover:not(.active) {
+  color: var(--text, #ccc);
+  background: rgba(255,255,255,0.03);
+}
+
+.size-tab.active {
+  color: white;
+  background: var(--accent, #D4842C);
+  box-shadow: 
+    0 0 15px rgba(212, 132, 44, 0.5),
+    0 0 30px rgba(212, 132, 44, 0.25),
+    0 4px 15px rgba(212, 132, 44, 0.3);
+  transform: scale(1.02);
+}
+
+.size-tab.active::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #D4842C, #f0a850, #D4842C, #e8943a);
+  background-size: 300% 300%;
+  z-index: -2;
+  animation: glow-rotate 3s ease-in-out infinite;
+  filter: blur(6px);
+  opacity: 0.6;
+}
+
+.size-tab.active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 11px;
+  background: var(--accent, #D4842C);
+  z-index: -1;
+}
+
+@keyframes glow-rotate {
+  0%, 100% { background-position: 0% 50%; opacity: 0.5; }
+  50% { background-position: 100% 50%; opacity: 0.8; }
+}
+
+.tab-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: rgba(212, 132, 44, 0.15);
+  color: var(--accent, #D4842C);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: all 0.3s;
+}
+
+.size-tab.active .tab-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  text-shadow: 0 0 10px rgba(255,255,255,0.5);
+}
+
+.tab-content { animation: tabFadeIn 0.35s ease-out; }
+.tab-content.hidden { display: none; }
+
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.size-card {
+  position: relative;
+  padding: 14px;
+  border-radius: 12px;
+  border: 2px solid var(--border, #1a1a1a);
+  background: var(--bg, #0a0a0a);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.size-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(212,132,44,0.05), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.size-card:hover {
+  border-color: rgba(212, 132, 44, 0.4);
+  transform: translateY(-2px);
+}
+
+.size-card:hover::before { opacity: 1; }
+
+.size-card.active {
+  border-color: var(--accent, #D4842C);
+  background: rgba(212, 132, 44, 0.08);
+  box-shadow: 0 0 20px rgba(212, 132, 44, 0.15);
+}
+
+.size-card.active::after {
+  content: '\f00c';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent, #D4842C);
+  color: white;
+  border-radius: 50%;
+  font-size: 10px;
+}
+
+.size-card.popular {
+  border-color: rgba(212, 132, 44, 0.3);
+}
+
+.size-card.popular::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(212,132,44,0.1), rgba(212,132,44,0.02));
+  opacity: 1;
+}
+
+.size-card.popular:hover {
+  border-color: var(--accent, #D4842C);
+  box-shadow: 0 0 25px rgba(212, 132, 44, 0.2);
+}
+
+.fire-pulse {
+  animation: fire-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes fire-pulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(212,132,44,0.5)); }
+  50% { transform: scale(1.15); filter: drop-shadow(0 0 8px rgba(212,132,44,0.8)); }
+}
+
+.size-tab:not(.active) .fa-sliders { transition: transform 0.3s; }
+.size-tab:hover:not(.active) .fa-sliders { transform: rotate(90deg); }
+</style>
+</head>
+<body>
+
+<div id="view-configurator">
+  <header class="border-b" style="border-color:var(--border);background:var(--bg-card)">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div style="width:36px;height:36px;background:var(--accent);border-radius:8px" class="flex items-center justify-center"><i class="fas fa-fire" style="color:#fff;font-size:16px"></i></div>
+        <div><h1 class="text-lg font-bold tracking-wide" style="letter-spacing:.08em">STEVPAN</h1><p class="text-xs" style="color:var(--muted)">Custom Steel Pizza Pans</p></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <div class="mb-8 fu"><h2 class="text-3xl font-bold mb-2">Design Your Pan</h2><p style="color:var(--muted)">Configure every detail. See it live. Get it made.</p></div>
+
+    <div class="cg" style="display:grid;grid-template-columns:1fr 420px;gap:32px;align-items:start">
+      <div class="sc fu" style="animation-delay:.1s;padding-bottom:12px">
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-sm font-medium" style="color:var(--muted)"><i class="fas fa-eye mr-1"></i> LIVE PREVIEW</span>
+          <span id="dim-label" class="text-xs font-mono" style="color:var(--steel)">5mm × 300mm × 250mm ~ 2.94 KG</span>
+        </div>
+        <div style="position:relative" id="canvas-wrap">
+          <canvas id="panCanvas"></canvas>
+          <svg id="dimSvg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible"></svg>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-5 fu" style="animation-delay:.2s">
+        <div class="sc">
+          <label class="text-sm font-semibold block mb-3"><i class="fas fa-ruler-combined mr-1" style="color:var(--accent)"></i> PAN SIZE</label>
+          
+          <div class="size-tab-nav">
+            <button type="button" class="size-tab active" data-tab="popular">
+              <i class="fas fa-fire fire-pulse"></i>
+              <span>Popular Sizes</span>
+              <span class="tab-badge">HOT</span>
+            </button>
+            <button type="button" class="size-tab" data-tab="custom">
+              <i class="fas fa-sliders"></i>
+              <span>Custom Size</span>
+            </button>
+          </div>
+          
+          <div id="tab-popular" class="tab-content">
+            <div class="grid grid-cols-1 gap-3 mb-3">
+              <div class="size-card" data-w="300" data-l="300" data-t="5">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="text-xs font-medium mb-1" style="color:var(--muted)">Standard Square</div>
+                    <div class="text-base font-bold">5mm × 300 × 300 mm</div>
+                  </div>
+                  <div class="text-right"><div class="text-xs" style="color:var(--steel)" id="preset-weight-1">~3.53 KG</div></div>
+                </div>
+              </div>
+              <div class="size-card popular" data-w="300" data-l="400" data-t="5">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="text-xs font-bold" style="color:var(--accent)">MOST POPULAR</span>
+                      <i class="fas fa-star text-xs" style="color:var(--accent)"></i>
+                    </div>
+                    <div class="text-base font-bold">5mm × 300 × 400 mm</div>
+                  </div>
+                  <div class="text-right"><div class="text-xs" style="color:var(--steel)" id="preset-weight-2">~4.71 KG</div></div>
+                </div>
+              </div>
+              <div class="size-card" data-w="350" data-l="450" data-t="5">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="text-xs font-medium mb-1" style="color:var(--muted)">Extra Large</div>
+                    <div class="text-base font-bold">5mm × 350 × 450 mm</div>
+                  </div>
+                  <div class="text-right"><div class="text-xs" style="color:var(--steel)" id="preset-weight-3">~6.17 KG</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="text-xs" style="color:var(--muted)"><i class="fas fa-info-circle mr-1"></i> All popular sizes use 5mm thickness. Select custom for other thickness options.</div>
+          </div>
+          
+          <div id="tab-custom" class="tab-content hidden">
+            <div class="flex gap-2 mb-4" id="thick-group">
+              <button class="tb" data-val="4"><div class="text-xl font-bold">4<span class="text-xs font-normal ml-1">mm</span></div><div class="text-xs mt-1" style="color:var(--muted)">Standard</div></button>
+              <button class="tb active" data-val="5"><div class="text-xl font-bold">5<span class="text-xs font-normal ml-1">mm</span></div><div class="text-xs mt-1" style="color:var(--muted)">Popular</div></button>
+              <button class="tb" data-val="6"><div class="text-xl font-bold">6<span class="text-xs font-normal ml-1">mm</span></div><div class="text-xs mt-1" style="color:var(--muted)">Heavy Duty</div></button>
+            </div>
+            <div class="flex items-center gap-3 mb-2">
+              <div class="flex-1"><label class="text-xs block mb-1" style="color:var(--muted)">Width</label><input type="number" id="inp-w" class="inf" value="300" min="100" max="800" step="1"></div>
+              <span class="text-lg mt-4" style="color:var(--muted)">×</span>
+              <div class="flex-1"><label class="text-xs block mb-1" style="color:var(--muted)">Length</label><input type="number" id="inp-l" class="inf" value="250" min="100" max="800" step="1"></div>
+            </div>
+            <div class="text-xs" style="color:var(--muted)">Dimensions in mm (100–800mm range)</div>
+            <p id="err-size" class="text-xs mt-1" style="color:var(--err);display:none"></p>
+          </div>
+        </div>
+
+        <div class="sc">
+          <label class="text-sm font-semibold mb-3 block"><i class="fas fa-vector-square mr-1" style="color:var(--accent)"></i> CORNER RADIUS</label>
+          <div class="flex items-center gap-3 mb-2">
+            <input type="range" id="inp-cr" min="0" max="40" step="1" value="5" style="flex:1">
+            <span id="cr-val" class="text-sm font-mono" style="min-width:42px;text-align:right;color:var(--accent)">R5</span>
+          </div>
+          <p class="text-xs" style="color:var(--muted)">Rounding radius for all four corners. 0 = sharp 90° corners.</p>
+          <p class="text-xs mt-1" style="color:var(--ok)"><i class="fas fa-gift mr-1"></i> Free — included at no extra cost</p>
+        </div>
+
+        <div class="sc">
+          <label class="text-sm font-semibold mb-3 block"><i class="fas fa-circle-dot mr-1" style="color:var(--accent)"></i> VENTILATION HOLES</label>
+          <div id="holes-container"></div>
+          <p class="text-xs mt-2" style="color:var(--ok)"><i class="fas fa-gift mr-1"></i> Free — all holes included at no extra cost</p>
+        </div>
+
+        <div class="sc" style="border-color:var(--accent-dm);background:linear-gradient(135deg,rgba(212,132,44,.06),transparent)">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm" style="color:var(--muted)">Pan Price</span>
+            <span class="text-xs" style="color:var(--muted)">before shipping</span>
+          </div>
+          <div class="flex items-baseline gap-1">
+            <span class="text-sm" style="color:var(--accent)">RM</span>
+            <span id="price-display" class="text-4xl font-bold" style="color:var(--accent)">0.00</span>
+          </div>
+
+          <!-- Shipping Estimate -->
+          <div class="mt-3 pt-3" style="border-top:1px solid var(--border)">
+            <div class="flex items-center justify-between cursor-pointer" id="ship-toggle">
+              <div class="flex items-center gap-2">
+                <i class="fas fa-truck text-xs" style="color:var(--ok)"></i>
+                <span id="ship-summary" class="text-xs font-medium" style="color:var(--ok)">Free shipping (Peninsular)</span>
+              </div>
+              <i class="fas fa-chevron-down text-xs" style="color:var(--muted);transition:transform .2s" id="ship-icon"></i>
+            </div>
+            <div id="ship-rates" style="display:none" class="mt-3 pl-5">
+              <div class="text-xs space-y-2" style="color:var(--muted);line-height:1.6">
+                <div>
+                  <div class="font-medium mb-0.5" style="color:var(--text)">Peninsular Malaysia</div>
+                  <div>≤ 10KG <span style="color:var(--ok)">Free</span> · 10–20KG RM 50 · 21–31KG RM 100</div>
+                </div>
+                <div>
+                  <div class="font-medium mb-0.5" style="color:var(--text)">Sabah / Sarawak</div>
+                  <div>≤ 5KG RM 100 · 5–10KG RM 150 · 10–20KG RM 200 · 21–31KG RM 1000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="price-bd" class="mt-3 text-xs space-y-1" style="color:var(--muted)"></div>
+          <button class="bp w-full mt-4" id="btn-ck"><i class="fas fa-shopping-cart mr-2"></i>Checkout Now</button>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer class="text-center py-6 text-xs" style="color:var(--muted);border-top:1px solid var(--border)">STEVPAN Malaysia &middot; Custom Steel Pizza Pans &middot; Payment via ToyyibPay (FPX / Credit Card)</footer>
+</div>
+
+<div id="toast" class="toast"><span id="toast-m"></span></div>
+
+<script>
+var PATTERNS=[
+  {key:'none',label:'None',icon:'fa-ban'},
+  {key:'center',label:'Center',icon:'fa-bullseye'},
+  {key:'square',label:'Square',icon:'fa-vector-square'},
+  {key:'ring',label:'Ring',icon:'fa-circle-notch'}
+];
+
+var currentTab = 'popular';
+
+/* ── SHIPPING RATE CALCULATOR ── */
+function getShipRate(region, weightKg) {
+  var isEast = (region === 'Sabah' || region === 'Sarawak' || region === 'Labuan (FT)');
+  if (isEast) {
+    if (weightKg <= 5) return 100;
+    if (weightKg <= 10) return 150;
+    if (weightKg <= 20) return 200;
+    if (weightKg <= 31) return 1000;
+    return null;
+  } else {
+    if (weightKg <= 10) return 0;
+    if (weightKg <= 20) return 50;
+    if (weightKg <= 31) return 100;
+    return null;
+  }
+}
+
+function inPan(x,y,w,h,r,m){
+  if(x<m||x>w-m||y<m||y>h-m)return false;if(r<=0)return true;
+  var lx=x-m,ly=y-m,lw=w-2*m,lh=h-2*m,cr=Math.min(r,lw/2,lh/2);
+  if(lx<0||lx>lw||ly<0||ly>lh)return false;
+  if(lx<cr&&ly<cr)return(lx-cr)*(lx-cr)+(ly-cr)*(ly-cr)<=cr*cr;
+  if(lx>lw-cr&&ly<cr)return(lx-(lw-cr))*(lx-(lw-cr))+(ly-cr)*(ly-cr)<=cr*cr;
+  if(lx<cr&&ly>lh-cr)return(lx-cr)*(lx-cr)+(ly-(lh-cr))*(ly-(lh-cr))<=cr*cr;
+  if(lx>lw-cr&&ly>lh-cr)return(lx-(lw-cr))*(lx-(lw-cr))+(ly-(lh-cr))*(ly-(lh-cr))<=cr*cr;
+  return true;
+}
+
+function getHolePositions(pattern,holes,panW,panL,cornerRadius){
+  var res=[];if(pattern==='none')return res;
+  var mg,cx=panW/2,cy=panL/2;
+  var ok=function(x,y,d){mg=d/2+3;return inPan(x,y,panW,panL,cornerRadius,mg)};
+  switch(pattern){
+    case'center':if(ok(cx,cy,holes.diameter))res.push({x:cx,y:cy,d:holes.diameter});break;
+    case'square':{
+      if(ok(cx,cy,holes.centerDia))res.push({x:cx,y:cy,d:holes.centerDia});
+      var hDist=holes.hDist,vDist=holes.vDist;
+      var pts=[[cx-hDist/2,cy-vDist/2],[cx+hDist/2,cy-vDist/2],[cx-hDist/2,cy+vDist/2],[cx+hDist/2,cy+vDist/2]];
+      for(var i=0;i<pts.length;i++){if(ok(pts[i][0],pts[i][1],holes.edgeDia))res.push({x:pts[i][0],y:pts[i][1],d:holes.edgeDia})}
+      break;
+    }
+    case'ring':{
+      var n=holes.count;var radius=holes.pcd/2;
+      for(var i=0;i<n;i++){var a=(2*Math.PI*i)/n-Math.PI/2;var x=cx+Math.cos(a)*radius,y=cy+Math.sin(a)*radius;if(ok(x,y,holes.diameter))res.push({x:x,y:y,d:holes.diameter})}
+      break;
+    }
+  }
+  return res;
+}
+
+function holeDesc(h,cnt){
+  if(h.pattern==='none')return'No ventilation holes';
+  if(h.pattern==='center')return'Center \u00D8'+h.diameter+'mm \u2014 1 hole';
+  if(h.pattern==='square')return'Square \u2014 center \u00D8'+h.centerDia+'mm, 4\u00D7\u00D8'+h.edgeDia+'mm (H:'+h.hDist+'mm V:'+h.vDist+'mm) \u2014 '+cnt+' holes';
+  if(h.pattern==='ring')return cnt+'\u00D7\u00D8'+h.diameter+'mm on PCD '+h.pcd+'mm';
+  return'';
+}
+
+function rn(v){return Math.round(v*100)/100}
+
+function calc(c){
+  var volMm3=c.width*c.length*c.thickness;var weightKg=(volMm3/1e9)*7850;
+  var marketPrice=parseFloat(localStorage.getItem('sf_market_price'))||4.50;var margin=parseFloat(localStorage.getItem('sf_margin'))||40;var labour=parseFloat(localStorage.getItem('sf_labour_price'))||15;
+  var materialCost=weightKg*marketPrice;var marginAmount=materialCost*(margin/100);
+  return{weight:rn(weightKg),marketPrice:rn(marketPrice),materialCost:rn(materialCost),marginPct:margin,marginAmount:rn(marginAmount),labourPrice:rn(labour),total:rn(Math.max(25,materialCost+marginAmount+labour))}
+}
+
+function toast(m,t){t=t||'info';var el=document.getElementById('toast');var ic=t==='ok'?'fa-circle-check':t==='err'?'fa-circle-xmark':'fa-circle-info';var cl=t==='ok'?'var(--ok)':t==='err'?'var(--err)':'var(--accent)';document.getElementById('toast-m').innerHTML='<i class="fas '+ic+' mr-2" style="color:'+cl+'"></i>'+m;el.classList.add('show');setTimeout(function(){el.classList.remove('show')},3500)}
+
+var cfg={width:300,length:250,thickness:5,cornerRadius:5,holes:{pattern:'none',diameter:20,centerDia:20,edgeDia:12,hDist:80,vDist:60,count:6,pcd:150}};
+var af=null;var C={ctx:null,w:0,h:0};
+
+function setupC(){
+  var cv=document.getElementById('panCanvas');var dpr=window.devicePixelRatio||1;
+  var dw=cv.clientWidth;var dh=Math.min(dw*0.78,520);
+  cv.style.height=dh+'px';cv.width=dw*dpr;cv.height=dh*dpr;
+  var ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+  C={ctx:ctx,w:dw,h:dh};
+  var svg=document.getElementById('dimSvg');svg.setAttribute('width',dw);svg.setAttribute('height',dh);svg.setAttribute('viewBox','0 0 '+dw+' '+dh);
+}
+
+function rrect(ctx,x,y,w,h,r){
+  r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+function draw(ts){
+  if(!C.ctx)return;var ctx=C.ctx,w=C.w,h=C.h;ctx.clearRect(0,0,w,h);
+  var userW=cfg.width,userL=cfg.length,userCR=cfg.cornerRadius;
+  var mx=55,my=35,mb=50,mr=55;var aw=w-mx-mr,ah=h-my-mb;var asp=userW/userL;var pw,ph;
+  if(aw/ah>asp){ph=ah;pw=ph*asp}else{pw=aw;ph=pw/asp}
+  var px=(w-pw)/2,py=(h-ph)/2-8;var sc=pw/userW;var cr=Math.min(userCR*sc,pw/2,ph/2);
+  ctx.save();
+  rrect(ctx,px,py,pw,ph,cr);ctx.fillStyle='#3a3a3a';ctx.fill();ctx.restore();
+  var sg=ctx.createLinearGradient(px,py,px+pw,py+ph);
+  sg.addColorStop(0,'#C0C0C0');sg.addColorStop(0.2,'#ABABAB');sg.addColorStop(0.45,'#BFBFBF');
+  sg.addColorStop(0.55,'#A8A8A8');sg.addColorStop(0.8,'#B5B5B5');sg.addColorStop(1,'#959595');
+  rrect(ctx,px,py,pw,ph,cr);ctx.fillStyle=sg;ctx.fill();
+  ctx.save();rrect(ctx,px,py,pw,ph,cr);ctx.clip();
+  for(var ly=py+1.5;ly<py+ph-1;ly+=2.5){var idx=Math.round((ly-py)/2.5);var op=idx%4===0?0.045:idx%3===0?0.02:0.01;ctx.beginPath();ctx.moveTo(px,ly);ctx.lineTo(px+pw,ly);ctx.strokeStyle='rgba(255,255,255,'+op+')';ctx.lineWidth=0.5;ctx.stroke()}
+  ctx.restore();
+  if(userCR>0&&cr>3){
+    ctx.save();rrect(ctx,px,py,pw,ph,cr);ctx.clip();var eg=8;
+    var g1=ctx.createLinearGradient(px,py,px+eg,py);g1.addColorStop(0,'rgba(255,255,255,.1)');g1.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g1;ctx.fillRect(px,py,eg,ph);
+    var g2=ctx.createLinearGradient(px+pw,py,px+pw-eg,py);g2.addColorStop(0,'rgba(255,255,255,.07)');g2.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g2;ctx.fillRect(px+pw-eg,py,eg,ph);
+    var g3=ctx.createLinearGradient(px,py,px,py+eg);g3.addColorStop(0,'rgba(255,255,255,.1)');g3.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g3;ctx.fillRect(px,py,pw,eg);
+    var g4=ctx.createLinearGradient(px,py+ph,px,py+ph-eg);g4.addColorStop(0,'rgba(255,255,255,.07)');g4.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g4;ctx.fillRect(px,py+ph-eg,pw,eg);
+    var corners=[[px+cr,py+cr],[px+pw-cr,py+cr],[px+cr,py+ph-cr],[px+pw-cr,py+ph-cr]];
+    for(var ci=0;ci<corners.length;ci++){var ccx=corners[ci][0],ccy=corners[ci][1];var cg=ctx.createRadialGradient(ccx,ccy,0,ccx,ccy,cr*1.8);cg.addColorStop(0,'rgba(255,255,255,.06)');cg.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=cg;ctx.fillRect(ccx-cr*2,ccy-cr*2,cr*4,cr*4)}
+    ctx.restore();
+  }
+  if(ts){var prog=(ts/6000)%1;var swX=px-pw*0.4+prog*pw*1.8;var sw=ctx.createLinearGradient(swX-pw*0.12,0,swX+pw*0.12,0);sw.addColorStop(0,'rgba(255,255,255,0)');sw.addColorStop(0.5,'rgba(255,255,255,.1)');sw.addColorStop(1,'rgba(255,255,255,0)');ctx.save();rrect(ctx,px,py,pw,ph,cr);ctx.clip();ctx.fillStyle=sw;ctx.fillRect(px,py,pw,ph);ctx.restore()}
+  var holePositions=getHolePositions(cfg.holes.pattern,cfg.holes,userW,userL,userCR);
+  ctx.save();rrect(ctx,px,py,pw,ph,cr);ctx.clip();
+  for(var hi=0;hi<holePositions.length;hi++){
+  var hole=holePositions[hi];var hx=px+hole.x*sc;var hy=py+hole.y*sc;var hr=Math.max((hole.d/2)*sc,2);
+  ctx.beginPath();ctx.arc(hx,hy,hr,0,Math.PI*2);ctx.fillStyle='#0B0B0B';ctx.fill();
+  }
+  ctx.restore();
+  rrect(ctx,px,py,pw,ph,cr);ctx.strokeStyle='rgba(200,200,200,.12)';ctx.lineWidth=1.5;ctx.stroke();
+  if(cr>5){rrect(ctx,px+2,py+2,pw-4,ph-4,Math.max(1,cr-2));ctx.strokeStyle='rgba(255,255,255,.05)';ctx.lineWidth=0.5;ctx.stroke()}
+  var dimColor='#D4842C',dimGap=22,arrow=5,svgS='';
+  var hY=py+ph+dimGap;
+  svgS+='<line x1="'+px+'" y1="'+hY+'" x2="'+(px+pw)+'" y2="'+hY+'" stroke="'+dimColor+'" stroke-width="0.8"/>';
+  svgS+='<line x1="'+px+'" y1="'+(hY-6)+'" x2="'+px+'" y2="'+(hY+6)+'" stroke="'+dimColor+'" stroke-width="0.8"/>';
+  svgS+='<line x1="'+(px+pw)+'" y1="'+(hY-6)+'" x2="'+(px+pw)+'" y2="'+(hY+6)+'" stroke="'+dimColor+'" stroke-width="0.8"/>';
+  svgS+='<polygon points="'+px+','+hY+' '+(px+arrow)+','+(hY-arrow/2)+' '+(px+arrow)+','+(hY+arrow/2)+'" fill="'+dimColor+'"/>';
+  svgS+='<polygon points="'+(px+pw)+','+hY+' '+(px+pw-arrow)+','+(hY-arrow/2)+' '+(px+pw-arrow)+','+(hY+arrow/2)+'" fill="'+dimColor+'"/>';
+  svgS+='<text x="'+((px+px+pw)/2)+'" y="'+(hY+15)+'" fill="'+dimColor+'" font-family="Space Grotesk,sans-serif" font-size="11" text-anchor="middle">'+userW+'mm</text>';
+  var vX=px+pw+dimGap;
+  svgS+='<line x1="'+vX+'" y1="'+py+'" x2="'+vX+'" y2="'+(py+ph)+'" stroke="'+dimColor+'" stroke-width="0.8"/>';
+  svgS+='<line x1="'+(vX-6)+'" y1="'+py+'" x2="'+(vX+6)+'" y2="'+py+'" stroke="'+dimColor+'" stroke-width="0.8"/>';
+  svgS+='<line x1="'+(vX-6)+'" y1="'+(py+ph)+'" x2="'+(vX+6)+'" y2="'+(py+ph)+'" stroke="'+dimColor+'" stroke-width="0.8"/>';
+  svgS+='<polygon points="'+vX+','+py+' '+(vX-arrow/2)+','+(py+arrow)+' '+(vX+arrow/2)+','+(py+arrow)+'" fill="'+dimColor+'"/>';
+  svgS+='<polygon points="'+vX+','+(py+ph)+' '+(vX-arrow/2)+','+(py+ph-arrow)+' '+(vX+arrow/2)+','+(py+ph-arrow)+'" fill="'+dimColor+'"/>';
+  svgS+='<text x="'+(vX-8)+'" y="'+((py+py+ph)/2)+'" fill="'+dimColor+'" font-family="Space Grotesk,sans-serif" font-size="11" text-anchor="middle" transform="rotate(-90,'+(vX-8)+','+((py+py+ph)/2)+')">'+userL+'mm</text>';
+  document.getElementById('dimSvg').innerHTML=svgS;
+  af=requestAnimationFrame(draw);
+}
+
+function startA(){stopA();setupC();af=requestAnimationFrame(draw)}
+function stopA(){if(af){cancelAnimationFrame(af);af=null}}
+
+function slider(label,min,max,val,unit,dataP){
+  return'<div class="flex items-center gap-2 mb-2"><label class="text-xs" style="color:var(--muted);min-width:72px">'+label+'</label><input type="range" min="'+min+'" max="'+max+'" step="1" value="'+val+'" data-act="hd" data-p="'+dataP+'" style="flex:1"><span class="text-xs font-mono hd-lbl" style="color:var(--accent);min-width:52px;text-align:right">'+val+unit+'</span></div>';
+}
+
+function buildH(){
+  var h=cfg.holes;
+  var cnt=getHolePositions(h.pattern,h,cfg.width,cfg.length,cfg.cornerRadius).length;
+  var ctrl='';
+  if(h.pattern==='center') ctrl=slider('Diameter',10,100,h.diameter,'mm','diameter');
+  if(h.pattern==='square'){
+    ctrl=slider('Center \u00D8',10,100,h.centerDia,'mm','centerDia');
+    ctrl+=slider('Edge \u00D8',10,100,h.edgeDia,'mm','edgeDia');
+    ctrl+=slider('H Distance',20,400,h.hDist,'mm','hDist');
+    ctrl+=slider('V Distance',20,400,h.vDist,'mm','vDist');
+  }
+  if(h.pattern==='ring'){
+    ctrl=slider('Diameter',10,100,h.diameter,'mm','diameter');
+    ctrl+=slider('Count',3,12,h.count,'','count');
+    ctrl+=slider('PCD',20,500,h.pcd,'mm','pcd');
+  }
+  var cntHtml=h.pattern!=='none'?'<div id="hole-count" class="text-xs mt-2" style="color:var(--steel)"><i class="fas fa-info-circle mr-1"></i>Estimated: <strong style="color:var(--text)">'+cnt+' hole'+(cnt!==1?'s':'')+'</strong></div>':'<div id="hole-count"></div>';
+  var btns='';
+  for(var i=0;i<PATTERNS.length;i++){var p=PATTERNS[i];btns+='<button class="pb '+(h.pattern===p.key?'active':'')+'" data-act="hp" data-v="'+p.key+'" style="flex:1;min-width:70px;text-align:center;font-size:12px;padding:10px 4px"><i class="fas '+p.icon+' mr-1" style="font-size:10px"></i>'+p.label+'</button>'}
+  document.getElementById('holes-container').innerHTML='<div class="flex flex-wrap gap-2 mb-3">'+btns+'</div><div id="hole-controls">'+ctrl+'</div>'+cntHtml;
+}
+
+function updHoleCount(){
+  var el=document.getElementById('hole-count');if(!el)return;
+  var h=cfg.holes;if(h.pattern==='none'){el.innerHTML='';return}
+  var cnt=getHolePositions(h.pattern,h,cfg.width,cfg.length,cfg.cornerRadius).length;
+  el.innerHTML='<i class="fas fa-info-circle mr-1"></i>Estimated: <strong style="color:var(--text)">'+cnt+' hole'+(cnt!==1?'s':'')+'</strong>';
+}
+
+function updDimLabel(){var p=calc(cfg);document.getElementById('dim-label').textContent=cfg.thickness+'mm \u00D7 '+cfg.width+'mm \u00D7 '+cfg.length+'mm ~ '+p.weight.toFixed(2)+' KG'}
+
+function updP(){
+  var p=calc(cfg);
+  document.getElementById('price-display').textContent=p.total.toFixed(2);
+  var h=cfg.holes;var cnt=getHolePositions(h.pattern,h,cfg.width,cfg.length,cfg.cornerRadius).length;
+  var crText=cfg.cornerRadius>0?'Corner radius (R'+cfg.cornerRadius+') \u2014 free':'Corner radius (sharp) \u2014 free';
+  document.getElementById('price-bd').innerHTML='<div class="flex items-center gap-1" style="color:var(--ok)"><i class="fas fa-check text-xs"></i><span>'+crText+'</span></div><div class="flex items-center gap-1" style="color:var(--ok)"><i class="fas fa-check text-xs"></i><span>'+holeDesc(h,cnt)+'</span></div>';
+  updDimLabel();
+
+  /* Update shipping estimate based on weight */
+  var w = p.weight;
+  var penShip = getShipRate('Peninsular', w);
+  var eastShip = getShipRate('Sabah', w);
+  var sumEl = document.getElementById('ship-summary');
+  if (w > 31) {
+    sumEl.textContent = 'Over 31KG \u2014 contact us for quote';
+    sumEl.style.color = 'var(--warn)';
+  } else if (penShip === 0) {
+    sumEl.textContent = 'Free shipping (Peninsular) | RM ' + eastShip + ' (Sabah/Sarawak)';
+    sumEl.style.color = 'var(--ok)';
+  } else {
+    sumEl.textContent = 'RM ' + penShip + ' (Peninsular) | RM ' + eastShip + ' (Sabah/Sarawak)';
+    sumEl.style.color = 'var(--steel)';
+  }
+}
+
+function switchTab(tabName) {
+  currentTab = tabName;
+  document.querySelectorAll('.size-tab').forEach(function(tab) {
+    tab.classList.toggle('active', tab.dataset.tab === tabName);
+  });
+  document.getElementById('tab-popular').classList.toggle('hidden', tabName !== 'popular');
+  document.getElementById('tab-custom').classList.toggle('hidden', tabName !== 'custom');
+  var activeContent = document.getElementById('tab-' + tabName);
+  activeContent.style.animation = 'none';
+  activeContent.offsetHeight;
+  activeContent.style.animation = '';
+}
+
+document.addEventListener('click',function(e){
+  var t=e.target;
+  
+  var tabBtn = t.closest('.size-tab');
+  if (tabBtn) { switchTab(tabBtn.dataset.tab); return; }
+  
+  /* Shipping rate toggle */
+  if (t.closest('#ship-toggle')) {
+    var panel = document.getElementById('ship-rates');
+    var icon = document.getElementById('ship-icon');
+    if (panel.style.display === 'none') {
+      panel.style.display = 'block';
+      icon.style.transform = 'rotate(180deg)';
+    } else {
+      panel.style.display = 'none';
+      icon.style.transform = 'rotate(0)';
+    }
+    return;
+  }
+  
+  if(t.closest('[data-act="hp"]')){cfg.holes.pattern=t.closest('[data-act="hp"]').dataset.v;buildH();updP();return}
+  if(t.closest('.tb[data-val]')){
+    cfg.thickness=+t.closest('.tb').dataset.val;
+    document.querySelectorAll('.tb').forEach(function(b){b.classList.toggle('active',+b.dataset.val===cfg.thickness)});
+    updP();return;
+  }
+
+  var pBtn = e.target.closest('.size-card');
+  if (pBtn) {
+    var w = parseInt(pBtn.dataset.w);
+    var l = parseInt(pBtn.dataset.l);
+    var t = parseInt(pBtn.dataset.t);
+    cfg.width = w; cfg.length = l; cfg.thickness = t;
+    document.getElementById('inp-w').value = w;
+    document.getElementById('inp-l').value = l;
+    document.querySelectorAll('.tb').forEach(function(b){ b.classList.toggle('active', +b.dataset.val === t); });
+    document.querySelectorAll('.size-card').forEach(function(b){ b.classList.remove('active'); });
+    pBtn.classList.add('active');
+    updHoleCount(); updP();
+    toast('Size updated: ' + t + 'mm \u00D7 ' + w + 'mm \u00D7 ' + l + 'mm', 'ok');
+    return; 
+  }
+});
+
+document.addEventListener('input',function(e){
+  var t=e.target;
+  if(t.id==='inp-w'||t.id==='inp-l'){
+    var wv=parseInt(document.getElementById('inp-w').value)||300;
+    var lv=parseInt(document.getElementById('inp-l').value)||250;
+    var er=document.getElementById('err-size');
+    if(wv<100||wv>800||lv<100||lv>800){er.textContent='Width and length must be 100\u2013800mm';er.style.display='block';return}
+    er.style.display='none';cfg.width=wv;cfg.length=lv;
+    document.querySelectorAll('.size-card').forEach(function(b){ b.classList.remove('active'); });
+    updHoleCount();updP();return;
+  }
+  if(t.id==='inp-cr'){cfg.cornerRadius=parseFloat(t.value);document.getElementById('cr-val').textContent='R'+cfg.cornerRadius;updHoleCount();updP();return}
+  if(t.closest('[data-act="hd"]')){
+    var el=t.closest('[data-act="hd"]')||t;var p=el.dataset.p;cfg.holes[p]=parseFloat(el.value)||0;
+    var row=el.closest('.flex');var lbl=row?row.querySelector('.hd-lbl'):null;
+    if(lbl){
+      var u='';
+      if(p==='diameter'||p==='centerDia'||p==='edgeDia')u='\u00D8'+cfg.holes[p]+'mm';
+      else if(p==='hDist'||p==='vDist')u=cfg.holes[p]+'mm';
+      else if(p==='count')u=cfg.holes[p];
+      else if(p==='pcd')u=cfg.holes[p]+'mm';
+      lbl.textContent=u;
+    }
+    updHoleCount();updP();return;
+  }
+});
+
+document.getElementById('btn-ck').addEventListener('click',function(){
+  var er=document.getElementById('err-size');if(er.style.display==='block')return;
+  var p=calc(cfg);var cnt=getHolePositions(cfg.holes.pattern,cfg.holes,cfg.width,cfg.length,cfg.cornerRadius).length;
+  localStorage.setItem('sf_cfg',JSON.stringify({width:cfg.width,length:cfg.length,thickness:cfg.thickness,cornerRadius:cfg.cornerRadius,holes:cfg.holes,_pricing:p,_holeCount:cnt}));
+  window.location.href='checkout.html';
+});
+
+buildH();updP();startA();
+var rsz;window.addEventListener('resize',function(){clearTimeout(rsz);rsz=setTimeout(setupC,150)});
+</script>
+</body>
+</html>
