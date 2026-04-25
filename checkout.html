@@ -1,0 +1,372 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STEVPAN — Checkout</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  .my-notice { background: rgba(212,132,44,.06); border: 1px solid rgba(212,132,44,.15); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+  .my-notice i { color: var(--accent); font-size: 15px; flex-shrink: 0; }
+  .my-notice span { font-size: 12px; color: var(--steel-lt); line-height: 1.4; }
+  #ckCanvas { display: block; width: 100%; border-radius: 8px; background: #0F0F0F; }
+  #ck-region {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+  #ck-region:focus { border-color: var(--accent) !important; }
+  .ship-free { color: var(--ok) !important; font-weight: 600; }
+  .ship-paid { color: var(--text) !important; font-weight: 600; }
+  .ship-warn { color: var(--warn) !important; font-weight: 600; }
+  .ship-none { color: var(--muted) !important; }
+</style>
+</head>
+<body>
+
+<header class="border-b" style="border-color:var(--border);background:var(--bg-card)">
+  <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+    <a href="index.html" class="bo text-xs"><i class="fas fa-arrow-left mr-1"></i> Back to Configurator</a>
+    <div class="flex items-center gap-2">
+      <div style="width:28px;height:28px;background:var(--accent);border-radius:6px" class="flex items-center justify-center"><i class="fas fa-fire" style="color:#fff;font-size:12px"></i></div>
+      <span class="text-sm font-bold tracking-wide" style="letter-spacing:.08em">STEVPAN</span>
+    </div>
+    <div class="text-xs" style="color:var(--muted)">Step 2 of 2</div>
+  </div>
+</header>
+
+<main class="max-w-3xl mx-auto px-6 py-8">
+  <div class="mb-6"><h2 class="text-2xl font-bold mb-1">Checkout</h2><p class="text-sm" style="color:var(--muted)">Review your pan configuration and complete payment.</p></div>
+
+  <div class="sc mb-5" style="border-color:var(--accent-dm);background:linear-gradient(135deg,rgba(212,132,44,.06),transparent)">
+    <div class="flex items-center justify-between mb-4">
+      <span class="text-sm font-semibold"><i class="fas fa-receipt mr-1" style="color:var(--accent)"></i> ORDER SUMMARY</span>
+      <a href="index.html" style="font-size:12px;color:var(--accent);text-decoration:none;cursor:pointer"><i class="fas fa-pen mr-1"></i> Edit Configuration</a>
+    </div>
+    <div style="border-radius:8px;overflow:hidden;margin-bottom:16px;border:1px solid var(--border)">
+      <canvas id="ckCanvas"></canvas>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4" id="sum-specs"></div>
+
+    <!-- Price Breakdown -->
+    <div class="space-y-2 pt-3" style="border-top:1px solid var(--border)">
+      <div class="flex items-center justify-between">
+        <span class="text-sm" style="color:var(--muted)">Pan Total</span>
+        <span id="sum-pan" class="text-sm font-medium">RM 0.00</span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-sm" style="color:var(--muted)">
+          <i class="fas fa-truck mr-1" style="font-size:10px"></i> Shipping
+          <span id="ship-to-label" class="text-xs">(select region below)</span>
+        </span>
+        <span id="ship-cost-label" class="text-sm ship-none">Select Your Region</span>
+      </div>
+      <div class="flex items-center justify-between pt-2" style="border-top:1px solid var(--border)">
+        <span class="text-sm font-semibold">Grand Total</span>
+        <div class="flex items-baseline gap-1">
+          <span class="text-xs" style="color:var(--accent)">RM</span>
+          <span id="sum-total" class="text-2xl font-bold" style="color:var(--accent)">0.00</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="ship-note" class="text-xs mt-2" style="color:var(--muted)">
+      <i class="fas fa-info-circle mr-1"></i> Select your delivery region below to calculate shipping
+    </div>
+  </div>
+
+  <div class="sc mb-5">
+    <div class="text-sm font-semibold mb-3"><i class="fas fa-user mr-1" style="color:var(--accent)"></i> CUSTOMER DETAILS</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div><label class="text-xs font-medium block mb-1" style="color:var(--muted)">Full Name *</label><input id="ck-n" class="inf" placeholder="Ahmad bin Ali"></div>
+      <div><label class="text-xs font-medium block mb-1" style="color:var(--muted)">Phone *</label><input id="ck-p" class="inf" placeholder="012-3456789"></div>
+    </div>
+    <div class="mb-4"><label class="text-xs font-medium block mb-1" style="color:var(--muted)">Email *</label><input id="ck-e" class="inf" type="email" placeholder="email@example.com"></div>
+    <div class="mb-4">
+      <label class="text-xs font-medium block mb-2" style="color:var(--muted)"><i class="fas fa-location-dot mr-1" style="color:var(--accent)"></i> DELIVERY ADDRESS *</label>
+      <div class="mb-3">
+        <label class="text-xs block mb-1" style="color:var(--muted)">House Number / Street</label>
+        <input id="ck-house" class="inf" placeholder="No. 23, Jalan Mawar 5">
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="text-xs block mb-1" style="color:var(--muted)">Postcode *</label>
+          <input id="ck-postcode" class="inf" placeholder="81900" maxlength="5" inputmode="numeric">
+          <p id="err-postcode" class="text-xs mt-1" style="color:var(--err);display:none"></p>
+        </div>
+        <div>
+          <label class="text-xs block mb-1" style="color:var(--muted)">Region / State *</label>
+          <select id="ck-region" class="inf">
+            <option value="">— Select Region —</option>
+            <option value="Selangor">Selangor</option>
+            <option value="Kuala Lumpur">Kuala Lumpur</option>
+            <option value="Putrajaya">Putrajaya</option>
+            <option value="Johor">Johor</option>
+            <option value="Kedah">Kedah</option>
+            <option value="Kelantan">Kelantan</option>
+            <option value="Melaka">Melaka</option>
+            <option value="Negeri Sembilan">Negeri Sembilan</option>
+            <option value="Pahang">Pahang</option>
+            <option value="Perak">Perak</option>
+            <option value="Perlis">Perlis</option>
+            <option value="Pulau Pinang">Pulau Pinang</option>
+            <option value="Terengganu">Terengganu</option>
+            <option value="Sabah">Sabah</option>
+            <option value="Sarawak">Sarawak</option>
+            <option value="Labuan (FT)">Labuan (FT)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="my-notice mb-4">
+      <i class="fas fa-map-location-dot"></i>
+      <span>Delivery available within <strong style="color:var(--text)">Malaysia</strong> only. Select your region for accurate shipping calculation.</span>
+    </div>
+    <div><label class="text-xs font-medium block mb-1" style="color:var(--muted)">Special Instructions</label><textarea id="ck-s" class="inf" rows="2" placeholder="Any additional requests..."></textarea></div>
+  </div>
+
+  <div class="sc mb-5">
+    <div class="text-sm font-semibold mb-3"><i class="fas fa-credit-card mr-1" style="color:var(--accent)"></i> PAYMENT METHOD</div>
+    <div class="flex gap-3">
+      <label class="hc flex-1 flex items-center gap-3 active" id="pm-f" style="cursor:pointer;padding:14px">
+        <input type="radio" name="pm" value="fpx" checked style="accent-color:var(--accent)">
+        <div><div class="text-sm font-medium">FPX</div><div class="text-xs" style="color:var(--muted)">Online Banking Transfer</div></div>
+      </label>
+      <label class="hc flex-1 flex items-center gap-3" id="pm-c" style="cursor:pointer;padding:14px">
+        <input type="radio" name="pm" value="cc" style="accent-color:var(--accent)">
+        <div><div class="text-sm font-medium">Credit Card</div><div class="text-xs" style="color:var(--muted)">Visa / Mastercard</div></div>
+      </label>
+    </div>
+  </div>
+
+  <p id="ck-err" class="text-xs mb-3" style="color:var(--err);display:none"></p>
+  <button class="bp w-full text-base" style="padding:14px" id="btn-pay">Proceed to Payment — RM <span id="ck-pr">0.00</span></button>
+  <p class="text-xs text-center mt-3" style="color:var(--muted)"><i class="fas fa-lock mr-1"></i> Secured by ToyyibPay &middot; Your data is encrypted</p>
+</main>
+
+<div id="m-pay" class="mo" style="display:none"><div class="mb" style="max-width:480px"><div id="pay-c"></div></div></div>
+<div id="toast" class="toast"><span id="toast-m"></span></div>
+
+<script>
+/* ── SUPABASE ── */
+var SB_URL='https://uwshuhapmqucxcxqnaqk.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3c2h1aGFwbXF1Y3hjeHFuYXFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1OTM4MTQsImV4cCI6MjA5MjE2OTgxNH0.x0ahvlVthcaOUVz84Hv3V7ILUUgojxsitH0i4rbt6Lw';
+var sb=window.supabase.createClient(SB_URL,SB_KEY);
+
+/* ── SHIPPING RATE CALCULATOR ── */
+function getShipRate(region, weightKg) {
+  var isEast = (region === 'Sabah' || region === 'Sarawak' || region === 'Labuan (FT)');
+  if (isEast) {
+    if (weightKg <= 5) return 100;
+    if (weightKg <= 10) return 150;
+    if (weightKg <= 20) return 200;
+    if (weightKg <= 31) return 1000;
+    return null; /* over 31KG */
+  } else {
+    if (weightKg <= 10) return 0;   /* Free */
+    if (weightKg <= 20) return 50;
+    if (weightKg <= 31) return 100;
+    return null; /* over 31KG */
+  }
+}
+
+/* ── Canvas Drawing ── */
+function inPan(x,y,w,h,r,m){if(x<m||x>w-m||y<m||y>h-m)return false;if(r<=0)return true;var lx=x-m,ly=y-m,lw=w-2*m,lh=h-2*m,cr=Math.min(r,lw/2,lh/2);if(lx<0||lx>lw||ly<0||ly>lh)return false;if(lx<cr&&ly<cr)return(lx-cr)*(lx-cr)+(ly-cr)*(ly-cr)<=cr*cr;if(lx>lw-cr&&ly<cr)return(lx-(lw-cr))*(lx-(lw-cr))+(ly-cr)*(ly-cr)<=cr*cr;if(lx<cr&&ly>lh-cr)return(lx-cr)*(lx-cr)+(ly-(lh-cr))*(ly-(lh-cr))<=cr*cr;if(lx>lw-cr&&ly>lh-cr)return(lx-(lw-cr))*(lx-(lw-cr))+(ly-(lh-cr))*(ly-(lh-cr))<=cr*cr;return true}
+function getHolePositions(pattern,holes,panW,panL,cornerRadius){var res=[];if(pattern==='none')return res;var mg,cx=panW/2,cy=panL/2;var ok=function(x,y,d){mg=d/2+3;return inPan(x,y,panW,panL,cornerRadius,mg)};switch(pattern){case'center':if(ok(cx,cy,holes.diameter))res.push({x:cx,y:cy,d:holes.diameter});break;case'square':{if(ok(cx,cy,holes.centerDia))res.push({x:cx,y:cy,d:holes.centerDia});var hDist=holes.hDist,vDist=holes.vDist;var pts=[[cx-hDist/2,cy-vDist/2],[cx+hDist/2,cy-vDist/2],[cx-hDist/2,cy+vDist/2],[cx+hDist/2,cy+vDist/2]];for(var i=0;i<pts.length;i++){if(ok(pts[i][0],pts[i][1],holes.edgeDia))res.push({x:pts[i][0],y:pts[i][1],d:holes.edgeDia})}break}case'ring':{var n=holes.count;var radius=holes.pcd/2;for(var i=0;i<n;i++){var a=(2*Math.PI*i)/n-Math.PI/2;var x=cx+Math.cos(a)*radius,y=cy+Math.sin(a)*radius;if(ok(x,y,holes.diameter))res.push({x:x,y:y,d:holes.diameter})}break}}return res}
+
+var ckAF=null,CK={ctx:null,w:0,h:0};
+function setupCkCanvas(){var cv=document.getElementById('ckCanvas');var dpr=window.devicePixelRatio||1;var dw=cv.clientWidth;var dh=Math.min(dw*0.65,240);cv.style.height=dh+'px';cv.width=dw*dpr;cv.height=dh*dpr;var ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);CK={ctx:ctx,w:dw,h:dh}}
+function rrect(ctx,x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath()}
+function drawPreview(ts){if(!CK.ctx||!cfg)return;var ctx=CK.ctx,w=CK.w,h=CK.h;ctx.clearRect(0,0,w,h);var userW=cfg.width,userL=cfg.length,userCR=cfg.cornerRadius;var mx=45,my=25,mb=38,mr=45;var aw=w-mx-mr,ah=h-my-mb;var asp=userW/userL;var pw,ph;if(aw/ah>asp){ph=ah;pw=ph*asp}else{pw=aw;ph=pw/asp}var px=(w-pw)/2,py=(h-ph)/2-4;var sc=pw/userW;var cr=Math.min(userCR*sc,pw/2,ph/2);ctx.save();ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=30;ctx.shadowOffsetX=4;ctx.shadowOffsetY=8;rrect(ctx,px,py,pw,ph,cr);ctx.fillStyle='#3a3a3a';ctx.fill();ctx.restore();var sg=ctx.createLinearGradient(px,py,px+pw,py+ph);sg.addColorStop(0,'#C0C0C0');sg.addColorStop(0.2,'#ABABAB');sg.addColorStop(0.45,'#BFBFBF');sg.addColorStop(0.55,'#A8A8A8');sg.addColorStop(0.8,'#B5B5B5');sg.addColorStop(1,'#959595');rrect(ctx,px,py,pw,ph,cr);ctx.fillStyle=sg;ctx.fill();ctx.save();rrect(ctx,px,py,pw,ph,cr);ctx.clip();for(var ly=py+1.5;ly<py+ph-1;ly+=2.5){var idx=Math.round((ly-py)/2.5);var op=idx%4===0?0.045:idx%3===0?0.02:0.01;ctx.beginPath();ctx.moveTo(px,ly);ctx.lineTo(px+pw,ly);ctx.strokeStyle='rgba(255,255,255,'+op+')';ctx.lineWidth=0.5;ctx.stroke()}ctx.restore();if(userCR>0&&cr>3){ctx.save();rrect(ctx,px,py,pw,ph,cr);ctx.clip();var eg=8;var g1=ctx.createLinearGradient(px,py,px+eg,py);g1.addColorStop(0,'rgba(255,255,255,.1)');g1.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g1;ctx.fillRect(px,py,eg,ph);var g2=ctx.createLinearGradient(px+pw,py,px+pw-eg,py);g2.addColorStop(0,'rgba(255,255,255,.07)');g2.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g2;ctx.fillRect(px+pw-eg,py,eg,ph);var g3=ctx.createLinearGradient(px,py,px,py+eg);g3.addColorStop(0,'rgba(255,255,255,.1)');g3.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g3;ctx.fillRect(px,py,pw,eg);var g4=ctx.createLinearGradient(px,py+ph,px,py+ph-eg);g4.addColorStop(0,'rgba(255,255,255,.07)');g4.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g4;ctx.fillRect(px,py+ph-eg,pw,eg);var corners=[[px+cr,py+cr],[px+pw-cr,py+cr],[px+cr,py+ph-cr],[px+pw-cr,py+ph-cr]];for(var ci=0;ci<corners.length;ci++){var ccx=corners[ci][0],ccy=corners[ci][1];var cg=ctx.createRadialGradient(ccx,ccy,0,ccx,ccy,cr*1.8);cg.addColorStop(0,'rgba(255,255,255,.06)');cg.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=cg;ctx.fillRect(ccx-cr*2,ccy-cr*2,cr*4,cr*4)}ctx.restore()}if(ts){var prog=(ts/6000)%1;var swX=px-pw*0.4+prog*pw*1.8;var sw=ctx.createLinearGradient(swX-pw*0.12,0,swX+pw*0.12,0);sw.addColorStop(0,'rgba(255,255,255,0)');sw.addColorStop(0.5,'rgba(255,255,255,.1)');sw.addColorStop(1,'rgba(255,255,255,0)');ctx.save();rrect(ctx,px,py,pw,ph,cr);ctx.clip();ctx.fillStyle=sw;ctx.fillRect(px,py,pw,ph);ctx.restore()}var holePositions=getHolePositions(cfg.holes.pattern,cfg.holes,userW,userL,userCR);ctx.save();rrect(ctx,px,py,pw,ph,cr);ctx.clip();for(var hi=0;hi<holePositions.length;hi++){var hole=holePositions[hi];var hx=px+hole.x*sc;var hy=py+hole.y*sc;var hr=Math.max((hole.d/2)*sc,2);ctx.save();ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=6;ctx.shadowOffsetX=1;ctx.shadowOffsetY=2;var hg=ctx.createRadialGradient(hx-hr*.15,hy-hr*.15,0,hx,hy,hr);hg.addColorStop(0,'#2A2A2A');hg.addColorStop(1,'#0A0A0A');ctx.beginPath();ctx.arc(hx,hy,hr,0,Math.PI*2);ctx.fillStyle=hg;ctx.fill();ctx.strokeStyle='rgba(180,180,180,.2)';ctx.lineWidth=1;ctx.stroke();ctx.restore()}ctx.restore();rrect(ctx,px,py,pw,ph,cr);ctx.strokeStyle='rgba(200,200,200,.12)';ctx.lineWidth=1.5;ctx.stroke();if(cr>5){rrect(ctx,px+2,py+2,pw-4,ph-4,Math.max(1,cr-2));ctx.strokeStyle='rgba(255,255,255,.05)';ctx.lineWidth=0.5;ctx.stroke()}var dimColor='#D4842C',dimGap=16,arrow=4;var hY=py+ph+dimGap;ctx.strokeStyle=dimColor;ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(px,hY);ctx.lineTo(px+pw,hY);ctx.stroke();ctx.beginPath();ctx.moveTo(px,hY-5);ctx.lineTo(px,hY+5);ctx.stroke();ctx.beginPath();ctx.moveTo(px+pw,hY-5);ctx.lineTo(px+pw,hY+5);ctx.stroke();ctx.fillStyle=dimColor;ctx.beginPath();ctx.moveTo(px,hY);ctx.lineTo(px+arrow,hY-arrow/2);ctx.lineTo(px+arrow,hY+arrow/2);ctx.fill();ctx.beginPath();ctx.moveTo(px+pw,hY);ctx.lineTo(px+pw-arrow,hY-arrow/2);ctx.lineTo(px+pw-arrow,hY+arrow/2);ctx.fill();ctx.font='10px Space Grotesk,sans-serif';ctx.textAlign='center';ctx.fillText(userW+'mm',(px+px+pw)/2,hY+13);var vX=px+pw+dimGap;ctx.beginPath();ctx.moveTo(vX,py);ctx.lineTo(vX,py+ph);ctx.stroke();ctx.beginPath();ctx.moveTo(vX-5,py);ctx.lineTo(vX+5,py);ctx.stroke();ctx.beginPath();ctx.moveTo(vX-5,py+ph);ctx.lineTo(vX+5,py+ph);ctx.stroke();ctx.beginPath();ctx.moveTo(vX,py);ctx.lineTo(vX-arrow/2,py+arrow);ctx.lineTo(vX+arrow/2,py+arrow);ctx.fill();ctx.beginPath();ctx.moveTo(vX,py+ph);ctx.lineTo(vX-arrow/2,py+ph-arrow);ctx.lineTo(vX+arrow/2,py+ph-arrow);ctx.fill();ctx.save();ctx.translate(vX-7,(py+py+ph)/2);ctx.rotate(-Math.PI/2);ctx.fillText(userL+'mm',0,0);ctx.restore();ckAF=requestAnimationFrame(drawPreview)}
+
+function gO(){try{return JSON.parse(localStorage.getItem('sf_o')||'[]')}catch(e){return[]}}
+function sO(o){localStorage.setItem('sf_o',JSON.stringify(o))}
+function aO(o){var a=gO();a.unshift(o);sO(a)}
+function toast(m,t){t=t||'info';var el=document.getElementById('toast');var ic=t==='ok'?'fa-circle-check':t==='err'?'fa-circle-xmark':'fa-circle-info';var cl=t==='ok'?'var(--ok)':t==='err'?'var(--err)':'var(--accent)';document.getElementById('toast-m').innerHTML='<i class="fas '+ic+' mr-2" style="color:'+cl+'"></i>'+m;el.classList.add('show');setTimeout(function(){el.classList.remove('show')},3500)}
+
+var cfg=JSON.parse(localStorage.getItem('sf_cfg'));
+if(!cfg||!cfg.width){window.location.href='index.html';throw new Error('No config')}
+var pricing=cfg._pricing||{total:0,weight:0};
+var payM='fpx';
+var currentShipping=null;  /* null = not calculated, number = cost */
+var currentRegion='';
+
+/* ── Build summary ── */
+(function(){
+  var specs=[
+    {label:'Thickness',value:cfg.thickness+' mm',icon:'fa-layer-group'},
+    {label:'Width',value:cfg.width+' mm',icon:'fa-arrows-left-right'},
+    {label:'Length',value:cfg.length+' mm',icon:'fa-arrows-up-down'},
+    {label:'Weight',value:pricing.weight.toFixed(2)+' kg',icon:'fa-weight-hanging'}
+  ];
+  var sh='';
+  for(var i=0;i<specs.length;i++){var s=specs[i];sh+='<div style="padding:12px 8px;background:var(--bg);border-radius:8px;text-align:center"><i class="fas '+s.icon+' text-xs mb-1 block" style="color:var(--accent)"></i><div class="text-sm font-bold">'+s.value+'</div><div class="text-xs" style="color:var(--muted)">'+s.label+'</div></div>'}
+  document.getElementById('sum-specs').innerHTML=sh;
+  document.getElementById('sum-pan').textContent='RM '+pricing.total.toFixed(2);
+  document.getElementById('sum-total').textContent=pricing.total.toFixed(2);
+  document.getElementById('ck-pr').textContent=pricing.total.toFixed(2);
+})();
+
+/* ── Update shipping when region changes ── */
+function updateShipping() {
+  var region = document.getElementById('ck-region').value;
+  var weight = pricing.weight;
+  var costEl = document.getElementById('ship-cost-label');
+  var toEl = document.getElementById('ship-to-label');
+  var totalEl = document.getElementById('sum-total');
+  var noteEl = document.getElementById('ship-note');
+  var payBtn = document.getElementById('btn-pay');
+
+  currentRegion = region;
+
+  if (!region) {
+    currentShipping = null;
+    costEl.textContent = '\u2014';
+    costEl.className = 'text-sm ship-none';
+    toEl.textContent = '(select region below)';
+    totalEl.textContent = pricing.total.toFixed(2);
+    payBtn.querySelector('span').textContent = pricing.total.toFixed(2);
+    noteEl.innerHTML = '<i class="fas fa-info-circle mr-1"></i> Select your delivery region below to calculate shipping';
+    payBtn.disabled = false;
+    return;
+  }
+
+  var cost = getShipRate(region, weight);
+
+  if (cost === null) {
+    /* Over 31KG */
+    currentShipping = null;
+    costEl.textContent = 'Contact us';
+    costEl.className = 'text-sm ship-warn';
+    toEl.textContent = '(to ' + region + ', ~' + weight.toFixed(1) + ' KG)';
+    totalEl.textContent = '\u2014';
+    payBtn.querySelector('span').textContent = '\u2014';
+    noteEl.innerHTML = '<i class="fas fa-exclamation-triangle mr-1" style="color:var(--warn)"></i> <span style="color:var(--warn)">Pan exceeds 31KG. Please <a href="https://wa.me/60XXXXXXXXX" style="color:var(--accent);text-decoration:underline">contact us</a> for a custom shipping quote.</span>';
+    payBtn.disabled = true;
+    return;
+  }
+
+  currentShipping = cost;
+  toEl.textContent = '(to ' + region + ', ~' + weight.toFixed(1) + ' KG)';
+
+  if (cost === 0) {
+    costEl.textContent = 'FREE';
+    costEl.className = 'text-sm ship-free';
+  } else {
+    costEl.textContent = 'RM ' + cost.toFixed(2);
+    costEl.className = 'text-sm ship-paid';
+  }
+
+  var grandTotal = pricing.total + cost;
+  totalEl.textContent = grandTotal.toFixed(2);
+  payBtn.querySelector('span').textContent = grandTotal.toFixed(2);
+
+  if (cost === 0) {
+    noteEl.innerHTML = '<i class="fas fa-check-circle mr-1" style="color:var(--ok)"></i> <span style="color:var(--ok)">Free shipping for this weight to Peninsular Malaysia!</span>';
+  } else {
+    noteEl.innerHTML = '<i class="fas fa-truck mr-1"></i> Shipping to <strong style="color:var(--text)">' + region + '</strong> based on pan weight (~' + weight.toFixed(1) + ' KG)';
+  }
+  payBtn.disabled = false;
+}
+
+setupCkCanvas();ckAF=requestAnimationFrame(drawPreview);
+var rsz;window.addEventListener('resize',function(){clearTimeout(rsz);rsz=setTimeout(function(){if(ckAF)cancelAnimationFrame(ckAF);setupCkCanvas();ckAF=requestAnimationFrame(drawPreview)},150)});
+
+/* Postcode: only allow 5 digits */
+document.getElementById('ck-postcode').addEventListener('input',function(){
+  this.value=this.value.replace(/\D/g,'').substring(0,5);
+  document.getElementById('err-postcode').style.display='none';
+});
+
+/* Region change triggers shipping update */
+document.getElementById('ck-region').addEventListener('change',function(){
+  updateShipping();
+});
+
+document.addEventListener('change',function(e){if(e.target.name==='pm'){payM=e.target.value;document.getElementById('pm-f').classList.toggle('active',payM==='fpx');document.getElementById('pm-c').classList.toggle('active',payM==='cc')}});
+
+document.getElementById('btn-pay').addEventListener('click',function(){
+  var n=document.getElementById('ck-n').value.trim();
+  var p=document.getElementById('ck-p').value.trim();
+  var e=document.getElementById('ck-e').value.trim();
+  var house=document.getElementById('ck-house').value.trim();
+  var pc=document.getElementById('ck-postcode').value.trim();
+  var region=document.getElementById('ck-region').value;
+  var er=document.getElementById('ck-err');
+
+  if(!n||!p||!e||!house||!pc||!region){
+    er.textContent='Please fill in all required fields including region.';
+    er.style.display='block';return;
+  }
+  if(!e.includes('@')){
+    er.textContent='Please enter a valid email address.';
+    er.style.display='block';return;
+  }
+  if(pc.length!==5){
+    er.textContent='Postcode must be 5 digits.';
+    er.style.display='block';return;
+  }
+  if(currentShipping===null && region){
+    er.textContent='Pan exceeds 31KG. Please contact us for a shipping quote.';
+    er.style.display='block';return;
+  }
+  er.style.display='none';
+  var shipCost = currentShipping || 0;
+  var address=house+', '+pc+' '+region;
+  showPay(n,p,e,address,document.getElementById('ck-s').value.trim(), shipCost, region);
+});
+
+function showPay(n,p,e,a,s,shipCost,region){
+  var grandTotal=pricing.total+shipCost;
+  var pr=grandTotal.toFixed(2);
+  var c=document.getElementById('pay-c');
+
+  /* Show breakdown in payment modal */
+  var breakdown='<div class="text-xs space-y-1 mb-4" style="color:var(--muted)">';
+  breakdown+='<div class="flex justify-between"><span>Pan Total</span><span>RM '+pricing.total.toFixed(2)+'</span></div>';
+  if(shipCost===0){breakdown+='<div class="flex justify-between"><span>Shipping to '+region+'</span><span style="color:var(--ok)">FREE</span></div>'}
+  else{breakdown+='<div class="flex justify-between"><span>Shipping to '+region+'</span><span>RM '+shipCost.toFixed(2)+'</span></div>'}
+  breakdown+='<div class="flex justify-between pt-1 mt-1" style="border-top:1px solid var(--border);font-weight:600;color:var(--text)"><span>Grand Total</span><span style="color:var(--accent)">RM '+pr+'</span></div>';
+  breakdown+='</div>';
+
+  if(payM==='fpx'){
+    var bks=[{n:'Maybank2U',c:'#004B87'},{n:'CIMB Clicks',c:'#7B0E24'},{n:'Hong Leong',c:'#CC0000'},{n:'RHB Now',c:'#003B71'},{n:'Public Bank',c:'#00447C'},{n:'Bank Islam',c:'#00633B'},{n:'AmOnline',c:'#111'},{n:'BSN',c:'#FDDA24'}];
+    var bh='';for(var i=0;i<bks.length;i++)bh+='<button class="hc text-left flex items-center gap-2" data-act="bk" data-bi="'+i+'" style="padding:10px 12px"><div style="width:28px;height:28px;background:'+bks[i].c+';border-radius:4px;flex-shrink:0"></div><span class="text-xs font-medium">'+bks[i].n+'</span></button>';
+    c.innerHTML='<div class="p-5 border-b" style="border-color:var(--border)"><div class="flex items-center gap-3"><div style="width:32px;height:32px;background:#1B3A5C;border-radius:6px" class="flex items-center justify-center"><i class="fas fa-credit-card" style="color:#fff;font-size:13px"></i></div><div><div class="text-sm font-bold">ToyyibPay</div><div class="text-xs" style="color:var(--muted)">Secure Payment Gateway</div></div></div></div><div class="p-5"><div class="text-center mb-3"><div class="text-xs" style="color:var(--muted)">Payment Amount</div><div class="text-3xl font-bold" style="color:var(--accent)">RM '+pr+'</div><div class="text-xs mt-1" style="color:var(--muted)">STEVPAN \u2014 Custom Pizza Pan</div></div>'+breakdown+'<div class="text-sm font-medium mb-3">Select Your Bank</div><div class="grid grid-cols-2 gap-2" id="bk-g">'+bh+'</div><button class="bp w-full mt-4" id="btn-fp" disabled>Pay with FPX</button><p class="text-xs text-center mt-2" style="color:var(--muted)">You will be redirected to your bank for authentication</p></div>';
+    document.getElementById('btn-fp').addEventListener('click',function(){compPay(n,p,e,a,s,shipCost,region)});
+  }else{
+    c.innerHTML='<div class="p-5 border-b" style="border-color:var(--border)"><div class="flex items-center gap-3"><div style="width:32px;height:32px;background:#1B3A5C;border-radius:6px" class="flex items-center justify-center"><i class="fas fa-credit-card" style="color:#fff;font-size:13px"></i></div><div><div class="text-sm font-bold">ToyyibPay</div><div class="text-xs" style="color:var(--muted)">Secure Payment Gateway</div></div></div></div><div class="p-5"><div class="text-center mb-3"><div class="text-xs" style="color:var(--muted)">Payment Amount</div><div class="text-3xl font-bold" style="color:var(--accent)">RM '+pr+'</div></div>'+breakdown+'<div class="space-y-3"><div><label class="text-xs block mb-1" style="color:var(--muted)">Card Number</label><input class="inf" placeholder="4242 4242 4242 4242" maxlength="19"></div><div class="grid grid-cols-2 gap-3"><div><label class="text-xs block mb-1" style="color:var(--muted)">Expiry</label><input class="inf" placeholder="MM/YY" maxlength="5"></div><div><label class="text-xs block mb-1" style="color:var(--muted)">CVV</label><input class="inf" placeholder="123" maxlength="4" type="password"></div></div><div><label class="text-xs block mb-1" style="color:var(--muted)">Cardholder Name</label><input class="inf" value="'+n+'"></div></div><button class="bp w-full mt-4" id="btn-cc">Pay RM '+pr+'</button><p class="text-xs text-center mt-2" style="color:var(--muted)"><i class="fas fa-lock mr-1"></i> 256-bit SSL Encrypted</p></div>';
+    document.getElementById('btn-cc').addEventListener('click',function(){compPay(n,p,e,a,s,shipCost,region)});
+  }
+  document.getElementById('m-pay').style.display='flex';
+}
+
+async function compPay(n,p,e,a,s,shipCost,region){
+  document.getElementById('pay-c').innerHTML='<div class="p-12 flex flex-col items-center justify-center"><div class="spn mb-4"></div><div class="text-sm" style="color:var(--muted)">Processing payment...</div></div>';
+  var now=new Date();
+  var oid='SP-'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'-'+String(gO().length+1).padStart(3,'0');
+  var grandTotal=pricing.total+(shipCost||0);
+  var orderObj={id:oid,date:now.toISOString(),customer:{name:n,phone:p,email:e,address:a,notes:s},config:JSON.parse(JSON.stringify(cfg)),price:pricing.total,pricing:pricing,shipping_region:region,shipping_cost:shipCost||0,grand_total:rn(grandTotal),paymentMethod:payM,status:'pending'};
+  var {data,error}=await sb.from('orders').insert({id:oid,customer_name:n,customer_phone:p,customer_email:e,customer_address:a,customer_notes:s||null,config:cfg,price:pricing.total,pricing:pricing,shipping_region:region,shipping_cost:shipCost||0,grand_total:rn(grandTotal),payment_method:payM,status:'pending'});
+  if(error){aO(orderObj);localStorage.removeItem('sf_cfg');localStorage.setItem('sf_last_oid',oid);window.location.href='failed.html?ref='+encodeURIComponent(oid);return}
+  aO(orderObj);localStorage.removeItem('sf_cfg');localStorage.setItem('sf_last_oid',oid);window.location.href='success.html';
+}
+
+function rn(v){return Math.round(v*100)/100}
+
+document.addEventListener('click',function(e){if(e.target.closest('[data-act="bk"]')){var idx=e.target.closest('[data-act="bk"]').dataset.bi;document.querySelectorAll('#bk-g .hc').forEach(function(b,j){b.classList.toggle('active',j===+idx)});document.getElementById('btn-fp').disabled=false}});
+document.getElementById('m-pay').addEventListener('click',function(e){if(e.target===this)this.style.display='none'});
+document.querySelectorAll('#ck-n,#ck-p,#ck-e,#ck-house,#ck-postcode').forEach(function(el){el.addEventListener('input',function(){document.getElementById('ck-err').style.display='none'})});
+document.getElementById('ck-region').addEventListener('change',function(){document.getElementById('ck-err').style.display='none'});
+</script>
+</body>
+</html>
